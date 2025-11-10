@@ -1,6 +1,10 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
-use std::{os::unix::fs::PermissionsExt, path::PathBuf, process::Command};
+use std::{
+    os::unix::{fs::PermissionsExt, process::CommandExt},
+    path::PathBuf,
+    process::Command,
+};
 
 fn main() {
     let stdin = io::stdin();
@@ -39,6 +43,7 @@ fn run_command(cmd: &str, args: &[&str]) {
 
     Command::new(executable)
         .args(args)
+        .arg0(cmd)
         .spawn()
         .unwrap()
         .wait()
