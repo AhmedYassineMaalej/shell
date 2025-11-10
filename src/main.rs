@@ -46,10 +46,28 @@ fn change_directory(current_directory: &mut PathBuf, path: &str) {
     if path.starts_with('/') {
         let dir = PathBuf::from(path);
         if dir.exists() {
+            std::env::set_current_dir(&dir).unwrap();
             *current_directory = dir;
         } else {
             println!("cd: {}: No such file or directory", dir.display())
         }
+        return;
+    }
+
+    if path == "./" || path == "." {
+        return;
+    }
+
+    if path == "../" || path == ".." {
+        current_directory.pop();
+        return;
+    }
+
+    let new_dir = current_directory.join(PathBuf::from(path));
+    if new_dir.exists() {
+        *current_directory = new_dir;
+    } else {
+        println!("cd: {}: No such file or directory", path);
     }
 }
 
