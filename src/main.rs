@@ -75,7 +75,7 @@ fn find_executable(cmd: &str) -> Option<PathBuf> {
 }
 
 fn type_command(cmd: &str) {
-    if ["exit", "type", "echo"].contains(&cmd) {
+    if ["exit", "type", "echo", "pwd"].contains(&cmd) {
         println!("{cmd} is a shell builtin");
         return;
     }
