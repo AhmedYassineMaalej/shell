@@ -24,7 +24,7 @@ fn main() {
                 println!("{message}");
             }
             "type" => type_command(args[1]),
-            cmd => run_command(cmd, &args),
+            cmd => run_command(cmd, &args[1..]),
         }
 
         buf.clear();
