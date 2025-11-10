@@ -1,5 +1,6 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
+use std::{os::unix::fs::PermissionsExt, path::PathBuf};
 
 fn main() {
     let stdin = io::stdin();
@@ -22,17 +23,36 @@ fn main() {
                 let message = words[1..].join(" ");
                 println!("{message}");
             }
-            "type" => {
-                let cmd = words[1];
-                if ["exit", "type", "echo"].contains(&cmd) {
-                    println!("{cmd} is a shell builtin");
-                } else {
-                    println!("{cmd}: not found")
-                }
-            }
+            "type" => type_command(words[1]),
             cmd => println!("{cmd}: command not found"),
         }
 
         buf.clear();
     }
+}
+
+fn type_command(cmd: &str) {
+    if ["exit", "type", "echo"].contains(&cmd) {
+        println!("{cmd} is a shell builtin");
+        return;
+    }
+
+    let path = std::env::var("PATH").unwrap();
+
+    for dir in path.split(':') {
+        let mut dir = PathBuf::from(dir);
+        dir.push(cmd);
+
+        if dir.exists() {
+            let metadata = std::fs::metadata(&dir).unwrap();
+            let permissions = metadata.permissions();
+
+            if permissions.mode() & 0o111 != 0 {
+                println!("{cmd} is {}", dir.display());
+                return;
+            }
+        }
+    }
+
+    println!("{cmd}: not found")
 }
