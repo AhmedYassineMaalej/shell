@@ -10,13 +10,18 @@ fn main() {
         io::stdout().flush().unwrap();
         stdin.read_line(&mut buf).unwrap();
 
-        let mut words = buf.trim().split(' ');
-        let command = words.next().unwrap();
+        let mut words: Vec<&str> = buf.split_whitespace().collect();
+        let command = words[0];
 
         match command {
             "exit" => {
-                let code: usize = words.next().unwrap().parse().unwrap();
+                let _code: usize = words[1].parse().unwrap();
                 break;
+            }
+            "echo" => {
+                let message = words[1..].join(" ");
+
+                println!("{message}");
             }
             cmd => println!("{cmd}: command not found"),
         }
