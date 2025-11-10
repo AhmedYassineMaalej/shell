@@ -9,7 +9,7 @@ use std::{
 fn main() {
     let stdin = io::stdin();
     let mut buf = String::new();
-    let mut directory = std::env::current_dir().unwrap();
+    let mut current_directory = std::env::current_dir().unwrap();
 
     loop {
         print!("$ ");
@@ -29,13 +29,27 @@ fn main() {
                 println!("{message}");
             }
             "pwd" => {
-                println!("{}", directory.display())
+                println!("{}", current_directory.display())
+            }
+            "cd" => {
+                change_directory(&mut current_directory, args[1]);
             }
             "type" => type_command(args[1]),
             cmd => run_command(cmd, &args[1..]),
         }
 
         buf.clear();
+    }
+}
+
+fn change_directory(current_directory: &mut PathBuf, path: &str) {
+    if path.starts_with('/') {
+        let dir = PathBuf::from(path);
+        if dir.exists() {
+            *current_directory = dir;
+        } else {
+            println!("cd: {}: directory not found", dir.display())
+        }
     }
 }
 
