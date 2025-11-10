@@ -10,8 +10,15 @@ fn main() {
         io::stdout().flush().unwrap();
         stdin.read_line(&mut buf).unwrap();
 
-        match buf.trim() {
-            s => println!("{s}: command not found"),
+        let mut words = buf.trim().split(' ');
+        let command = words.next().unwrap();
+
+        match command {
+            "exit" => {
+                let code: usize = words.next().unwrap().parse().unwrap();
+                break;
+            }
+            cmd => println!("{cmd}: command not found"),
         }
 
         buf.clear();
