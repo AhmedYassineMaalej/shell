@@ -48,7 +48,7 @@ fn change_directory(current_directory: &mut PathBuf, path: &str) {
         if dir.exists() {
             *current_directory = dir;
         } else {
-            println!("cd: {}: directory not found", dir.display())
+            println!("cd: {}: No such file or directory", dir.display())
         }
     }
 }
