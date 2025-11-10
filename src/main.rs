@@ -9,6 +9,7 @@ use std::{
 fn main() {
     let stdin = io::stdin();
     let mut buf = String::new();
+    let mut directory = std::env::current_dir().unwrap();
 
     loop {
         print!("$ ");
@@ -27,6 +28,9 @@ fn main() {
                 let message = args[1..].join(" ");
                 println!("{message}");
             }
+            "pwd" => {
+                println!("{}", directory.display())
+            }
             "type" => type_command(args[1]),
             cmd => run_command(cmd, &args[1..]),
         }
@@ -42,8 +46,8 @@ fn run_command(cmd: &str, args: &[&str]) {
     };
 
     Command::new(executable)
-        .args(args)
         .arg0(cmd)
+        .args(args)
         .spawn()
         .unwrap()
         .wait()
