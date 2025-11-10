@@ -20,8 +20,15 @@ fn main() {
             }
             "echo" => {
                 let message = words[1..].join(" ");
-
                 println!("{message}");
+            }
+            "type" => {
+                let cmd = words[1];
+                if ["exit", "type", "echo"].contains(&cmd) {
+                    println!("{cmd} is a shell builtin");
+                } else {
+                    println!("{cmd}: not found")
+                }
             }
             cmd => println!("{cmd}: command not found"),
         }
