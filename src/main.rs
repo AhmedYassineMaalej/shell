@@ -11,7 +11,7 @@ fn main() {
         io::stdout().flush().unwrap();
         stdin.read_line(&mut buf).unwrap();
 
-        let mut args: Vec<&str> = buf.split_whitespace().collect();
+        let args: Vec<&str> = buf.split_whitespace().collect();
         let command = args[0];
 
         match command {
@@ -24,7 +24,7 @@ fn main() {
                 println!("{message}");
             }
             "type" => type_command(args[1]),
-            cmd => run_command(cmd, &args[1..]),
+            cmd => run_command(cmd, &args),
         }
 
         buf.clear();
