@@ -54,6 +54,16 @@ fn change_directory(current_directory: &mut PathBuf, mut path: &str) {
         return;
     }
 
+    match current_directory.join(path).canonicalize() {
+        Ok(new_dir) => {
+            *current_directory = new_dir;
+            std::env::set_current_dir(&current_directory).unwrap();
+        }
+        Err(e) => {
+            println!("cd: {}: No such file or directory", path);
+        }
+    }
+
     if path == "./" || path == "." {
         return;
     }
