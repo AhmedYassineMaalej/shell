@@ -65,6 +65,14 @@ impl Parser {
         // consume closing quote
         chars.next().expect("expected closing single quote");
 
+        if let Some('"') = chars.peek() {
+            word += &Self::double_quote_argument(chars);
+        }
+
+        if let Some('\'') = chars.peek() {
+            word += &Self::single_quote_argument(chars);
+        }
+
         word
     }
 
@@ -84,6 +92,14 @@ impl Parser {
         // consume closing quote
         chars.next().expect("expected closing double quote");
 
+        if let Some('"') = chars.peek() {
+            word += &Self::double_quote_argument(chars);
+        }
+
+        if let Some('\'') = chars.peek() {
+            word += &Self::single_quote_argument(chars);
+        }
+
         word
     }
 
@@ -93,3 +109,4 @@ impl Parser {
         }
     }
 }
+
