@@ -16,7 +16,7 @@ fn main() {
         io::stdout().flush().unwrap();
         stdin.read_line(&mut buf).unwrap();
 
-        let args: Vec<String> = parse_args(buf.trim());
+        let args: Vec<String> = parse_args(buf.replace("''", "").trim());
         let command = args[0].as_str();
 
         match command {
