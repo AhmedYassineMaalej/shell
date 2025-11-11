@@ -66,6 +66,16 @@ fn parse_argument(mut cmd: &str) -> Option<(&str, String)> {
         return Some((&rest[end + 1..], String::from(&rest[..end])));
     }
 
+    if let Some(rest) = cmd.strip_prefix('\"') {
+        let end = rest.find('\"').unwrap();
+
+        if end == 0 {
+            return parse_argument(&rest[1..]);
+        }
+
+        return Some((&rest[end + 1..], String::from(&rest[..end])));
+    }
+
     if let Some(idx) = cmd.find(' ') {
         return Some((&cmd[idx + 1..], String::from(&cmd[..idx]).replace("''", "")));
     }
