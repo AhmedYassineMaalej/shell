@@ -16,7 +16,7 @@ fn main() {
         io::stdout().flush().unwrap();
         stdin.read_line(&mut buf).unwrap();
 
-        let args: Vec<&str> = buf.split_whitespace().collect();
+        let args: Vec<&str> = parse_args(&buf);
         let command = args[0];
 
         match command {
@@ -40,6 +40,51 @@ fn main() {
 
         buf.clear();
     }
+}
+
+fn parse_args(cmd: &str) -> Vec<&str> {
+    let mut args = Vec::new();
+
+    let mut start = 0;
+    let mut end = 0;
+
+    let mut inside_quote = false;
+
+    while end < cmd.len() {
+        let char = &cmd[end..end + 1];
+        end += 1;
+
+        if char == "'" && inside_quote {
+            // end of 'xxxx'
+            inside_quote = false;
+            args.push(&cmd[start..end - 1]);
+            start = end;
+            continue;
+        }
+
+        if char == "'" && !inside_quote {
+            inside_quote = true;
+            start = end;
+            continue;
+        }
+
+        if inside_quote {
+            continue;
+        }
+
+        if char == " " && start == end {
+            start = end;
+            continue;
+        }
+
+        if char == " " && start != end {
+            args.push(&cmd[start..end - 1]);
+            start = end;
+            continue;
+        }
+    }
+
+    args
 }
 
 fn change_directory(current_directory: &mut PathBuf, mut path: &str) {
