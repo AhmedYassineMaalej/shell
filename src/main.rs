@@ -16,8 +16,8 @@ fn main() {
         io::stdout().flush().unwrap();
         stdin.read_line(&mut buf).unwrap();
 
-        let args: Vec<&str> = parse_args(&buf);
-        let command = args[0];
+        let args: Vec<String> = parse_args(buf.trim());
+        let command = args[0].as_str();
 
         match command {
             "exit" => {
@@ -32,9 +32,9 @@ fn main() {
                 println!("{}", current_directory.display())
             }
             "cd" => {
-                change_directory(&mut current_directory, args[1]);
+                change_directory(&mut current_directory, &args[1]);
             }
-            "type" => type_command(args[1]),
+            "type" => type_command(&args[1]),
             cmd => run_command(cmd, &args[1..]),
         }
 
@@ -42,52 +42,42 @@ fn main() {
     }
 }
 
-fn parse_args(cmd: &str) -> Vec<&str> {
+fn parse_args(mut cmd: &str) -> Vec<String> {
     let mut args = Vec::new();
 
-    let mut start = 0;
-    let mut end = 0;
-
-    let mut inside_quote = false;
-
-    while end < cmd.len() {
-        let char = &cmd[end..end + 1];
-        end += 1;
-
-        if char == "'" && inside_quote {
-            // end of 'xxxx'
-            inside_quote = false;
-            args.push(&cmd[start..end - 1]);
-            start = end;
-            continue;
-        }
-
-        if char == "'" && !inside_quote {
-            inside_quote = true;
-            start = end;
-            continue;
-        }
-
-        if inside_quote {
-            continue;
-        }
-
-        if char == " " && start == end {
-            start = end;
-            continue;
-        }
-
-        if char == " " && start != end {
-            args.push(&cmd[start..end - 1]);
-            start = end;
-            continue;
-        }
+    while let Some((rest, arg)) = parse_argument(cmd) {
+        cmd = rest;
+        args.push(arg);
     }
 
     args
 }
 
-fn change_directory(current_directory: &mut PathBuf, mut path: &str) {
+fn parse_argument(mut cmd: &str) -> Option<(&str, String)> {
+    cmd = cmd.trim_start();
+
+    if let Some(rest) = cmd.strip_prefix('\'') {
+        let end = rest.find('\'').unwrap();
+
+        if end == 0 {
+            return parse_argument(&rest[1..]);
+        }
+
+        return Some((&rest[end + 1..], String::from(&rest[..end])));
+    }
+
+    if let Some(idx) = cmd.find(' ') {
+        return Some((&cmd[idx + 1..], String::from(&cmd[..idx]).replace("''", "")));
+    }
+
+    if !cmd.is_empty() {
+        return Some(("", String::from(cmd)));
+    }
+
+    None
+}
+
+fn change_directory(current_directory: &mut PathBuf, path: &str) {
     if path == "~" {
         let home_dir = std::env::home_dir().unwrap();
         *current_directory = home_dir;
@@ -100,13 +90,13 @@ fn change_directory(current_directory: &mut PathBuf, mut path: &str) {
             *current_directory = new_dir;
             std::env::set_current_dir(&current_directory).unwrap();
         }
-        Err(e) => {
+        Err(_e) => {
             println!("cd: {}: No such file or directory", path);
         }
     }
 }
 
-fn run_command(cmd: &str, args: &[&str]) {
+fn run_command(cmd: &str, args: &[String]) {
     let Some(executable) = find_executable(cmd) else {
         println!("{cmd}: not found");
         return;
