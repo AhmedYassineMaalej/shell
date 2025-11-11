@@ -43,6 +43,13 @@ fn main() {
 }
 
 fn change_directory(current_directory: &mut PathBuf, mut path: &str) {
+    if path == "~" {
+        let home_dir = std::env::home_dir().unwrap();
+        *current_directory = home_dir;
+        std::env::set_current_dir(&current_directory).unwrap();
+        return;
+    }
+
     match current_directory.join(path).canonicalize() {
         Ok(new_dir) => {
             *current_directory = new_dir;
