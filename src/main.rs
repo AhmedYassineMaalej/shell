@@ -71,7 +71,7 @@ fn parse_argument(mut cmd: &str) -> Option<(&str, String)> {
     }
 
     if !cmd.is_empty() {
-        return Some(("", String::from(cmd)));
+        return Some(("", String::from(cmd).replace("''", "")));
     }
 
     None
