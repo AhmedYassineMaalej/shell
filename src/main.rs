@@ -6,6 +6,9 @@ use std::{
     process::Command,
 };
 
+mod parser;
+use parser::Parser;
+
 fn main() {
     let stdin = io::stdin();
     let mut buf = String::new();
@@ -16,8 +19,7 @@ fn main() {
         io::stdout().flush().unwrap();
         stdin.read_line(&mut buf).unwrap();
 
-        let input = buf.replace("''", "").replace("\"\"", "");
-        let args: Vec<String> = parse_args(input.trim());
+        let args: Vec<String> = Parser::parse(buf.trim());
         let command = args[0].as_str();
 
         match command {
