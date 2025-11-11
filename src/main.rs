@@ -64,7 +64,7 @@ fn change_directory(current_directory: &mut PathBuf, mut path: &str) {
     }
 
     if path.starts_with("./") {
-        path = path.strip_suffix("./").unwrap();
+        path = path.strip_prefix("./").unwrap();
     }
 
     let new_dir = current_directory.join(PathBuf::from(path));
