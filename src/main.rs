@@ -43,17 +43,6 @@ fn main() {
 }
 
 fn change_directory(current_directory: &mut PathBuf, mut path: &str) {
-    if path.starts_with('/') {
-        let dir = PathBuf::from(path);
-        if dir.exists() {
-            std::env::set_current_dir(&dir).unwrap();
-            *current_directory = dir;
-        } else {
-            println!("cd: {}: No such file or directory", dir.display())
-        }
-        return;
-    }
-
     match current_directory.join(path).canonicalize() {
         Ok(new_dir) => {
             *current_directory = new_dir;
@@ -62,26 +51,6 @@ fn change_directory(current_directory: &mut PathBuf, mut path: &str) {
         Err(e) => {
             println!("cd: {}: No such file or directory", path);
         }
-    }
-
-    if path == "./" || path == "." {
-        return;
-    }
-
-    if path == "../" || path == ".." {
-        current_directory.pop();
-        return;
-    }
-
-    if path.starts_with("./") {
-        path = path.strip_prefix("./").unwrap();
-    }
-
-    let new_dir = current_directory.join(PathBuf::from(path));
-    if new_dir.exists() {
-        *current_directory = new_dir;
-    } else {
-        println!("cd: {}: No such file or directory", path);
     }
 }
 
