@@ -42,7 +42,7 @@ fn main() {
     }
 }
 
-fn change_directory(current_directory: &mut PathBuf, path: &str) {
+fn change_directory(current_directory: &mut PathBuf, mut path: &str) {
     if path.starts_with('/') {
         let dir = PathBuf::from(path);
         if dir.exists() {
@@ -61,6 +61,10 @@ fn change_directory(current_directory: &mut PathBuf, path: &str) {
     if path == "../" || path == ".." {
         current_directory.pop();
         return;
+    }
+
+    if path.starts_with("./") {
+        path = path.strip_suffix("./").unwrap();
     }
 
     let new_dir = current_directory.join(PathBuf::from(path));
