@@ -1,7 +1,7 @@
 use std::{
     env::{self, split_paths},
     io::Write,
-    os::unix::fs::PermissionsExt,
+    os::unix::{fs::PermissionsExt, process::CommandExt},
     path::PathBuf,
     process::{self, exit, Stdio},
 };
@@ -58,7 +58,8 @@ impl CommandContext {
                     return output;
                 };
 
-                let mut command = process::Command::new(path);
+                let mut command = process::Command::new(&path);
+                command.arg0(path);
                 command.args(self.args);
                 command.stdout(Stdio::piped());
                 command.stderr(Stdio::piped());
