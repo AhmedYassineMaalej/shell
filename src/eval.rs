@@ -30,4 +30,3 @@ fn redirect(src: Box<Expr>, stream: Stream, dest: String) -> CommandOutput {
 
     CommandOutput::new()
 }
-

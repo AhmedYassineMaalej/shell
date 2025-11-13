@@ -55,11 +55,13 @@ impl CommandContext {
                 let mut command = process::Command::new(path);
                 command.args(self.args);
                 command.stdout(Stdio::piped());
+                command.stderr(Stdio::piped());
 
                 let command_output = command.spawn().unwrap().wait_with_output().unwrap();
 
                 output.success = command_output.status.success();
                 output.stdout = command_output.stdout;
+                output.stderr = command_output.stderr;
             }
         }
 
