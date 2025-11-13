@@ -48,29 +48,32 @@ impl CommandContext {
     }
 
     pub fn execute(self) -> CommandOutput {
-        let mut output = CommandOutput::new();
         match self.command {
-            Command::Builtin(builtin) => builtin.execute(&mut output.stdout, self.args),
-            Command::Binary(path) => {
-                let Some(path) = find_path(&path) else {
-                    writeln!(&mut output.stderr, "{}: command not found", path);
-                    output.success = false;
-                    return output;
-                };
-
-                let mut command = process::Command::new(&path);
-                command.arg0(path);
-                command.args(self.args);
-                command.stdout(Stdio::piped());
-                command.stderr(Stdio::piped());
-
-                let command_output = command.spawn().unwrap().wait_with_output().unwrap();
-
-                output.success = command_output.status.success();
-                output.stdout = command_output.stdout;
-                output.stderr = command_output.stderr;
-            }
+            Command::Builtin(builtin) => builtin.execute(self.args),
+            Command::Binary(path) => Self::execute_binary(path, self.args),
         }
+    }
+
+    fn execute_binary(path: String, args: Vec<String>) -> CommandOutput {
+        let mut output = CommandOutput::new();
+
+        let Some(path) = find_path(&path) else {
+            writeln!(&mut output.stderr, "{}: command not found", path);
+            output.success = false;
+            return output;
+        };
+
+        let mut command = process::Command::new(&path);
+        command.arg0(path.file_name().unwrap());
+        command.args(args);
+        command.stdout(Stdio::piped());
+        command.stderr(Stdio::piped());
+
+        let command_output = command.spawn().unwrap().wait_with_output().unwrap();
+
+        output.success = command_output.status.success();
+        output.stdout = command_output.stdout;
+        output.stderr = command_output.stderr;
 
         output
     }
@@ -85,21 +88,24 @@ pub enum BuiltinCommand {
 }
 
 impl BuiltinCommand {
-    pub fn execute<W: Write>(self, writer: &mut W, args: Vec<String>) {
+    pub fn execute(self, args: Vec<String>) -> CommandOutput {
         match self {
-            BuiltinCommand::Echo => Self::echo(writer, args),
-            BuiltinCommand::Cd => Self::cd(writer, args),
-            BuiltinCommand::Pwd => Self::pwd(writer, args),
-            BuiltinCommand::Type => Self::type_(writer, args),
-            BuiltinCommand::Exit => Self::exit(writer, args),
+            BuiltinCommand::Echo => Self::echo(args),
+            BuiltinCommand::Cd => Self::cd(args),
+            BuiltinCommand::Pwd => Self::pwd(args),
+            BuiltinCommand::Type => Self::type_(args),
+            BuiltinCommand::Exit => Self::exit(args),
         }
     }
 
-    fn echo<W: Write>(writer: &mut W, args: Vec<String>) {
-        writeln!(writer, "{}", args.join(" "));
+    fn echo(args: Vec<String>) -> CommandOutput {
+        let mut output = CommandOutput::new();
+        writeln!(&mut output.stdout, "{}", args.join(" "));
+        output
     }
 
-    fn cd<W: Write>(writer: &mut W, args: Vec<String>) {
+    fn cd(args: Vec<String>) -> CommandOutput {
+        let mut output = CommandOutput::new();
         let path = if args.len() >= 1 {
             args.into_iter().next().unwrap()
         } else {
@@ -109,7 +115,7 @@ impl BuiltinCommand {
         if path == "~" {
             let home_dir = env::home_dir().unwrap();
             env::set_current_dir(&home_dir).unwrap();
-            return;
+            return output;
         }
 
         let current_directory = env::current_dir().unwrap();
@@ -117,33 +123,41 @@ impl BuiltinCommand {
         match current_directory.join(&path).canonicalize() {
             Ok(new_dir) => std::env::set_current_dir(&new_dir).unwrap(),
             Err(_e) => {
-                writeln!(writer, "cd: {}: No such file or directory", path);
+                writeln!(output.stderr, "cd: {}: No such file or directory", path);
             }
         }
+
+        output
     }
 
-    fn pwd<W: Write>(writer: &mut W, args: Vec<String>) {
+    fn pwd(args: Vec<String>) -> CommandOutput {
+        let mut output = CommandOutput::new();
+
         if args.len() > 0 {
-            writeln!(writer, "pwd: too many arguments");
-            return;
+            writeln!(output.stderr, "pwd: too many arguments");
+            return output;
         }
 
         let current_directory = env::current_dir().unwrap();
-        writeln!(writer, "{}", current_directory.display());
+        writeln!(output.stdout, "{}", current_directory.display());
+        output
     }
 
-    fn type_<W: Write>(writer: &mut W, args: Vec<String>) {
+    fn type_(args: Vec<String>) -> CommandOutput {
+        let mut output = CommandOutput::new();
         let cmd = args.first().unwrap().as_str();
 
         if BuiltinCommand::try_from(cmd).is_ok() {
-            writeln!(writer, "{cmd} is a shell builtin");
-            return;
+            writeln!(output.stdout, "{cmd} is a shell builtin");
+            return output;
         }
 
         match find_path(cmd) {
-            Some(file) => writeln!(writer, "{cmd} is {}", file.display()),
-            None => writeln!(writer, "{cmd}: not found"),
+            Some(file) => writeln!(output.stdout, "{cmd} is {}", file.display()),
+            None => writeln!(output.stderr, "{cmd}: not found"),
         };
+
+        output
     }
 
     fn exit<W: Write>(writer: &mut W, args: Vec<String>) {
