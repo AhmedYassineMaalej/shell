@@ -18,6 +18,10 @@ pub fn evaluate(ast: Expr) -> CommandOutput {
 fn redirect(src: Box<Expr>, stream: Stream, dest: String) -> CommandOutput {
     let src = evaluate(*src);
 
+    if !src.success {
+        return src;
+    }
+
     match stream {
         Stream::Stdin => todo!(),
         Stream::Stdout => fs::write(dest, &src.stdout),
@@ -26,3 +30,4 @@ fn redirect(src: Box<Expr>, stream: Stream, dest: String) -> CommandOutput {
 
     CommandOutput::new()
 }
+

@@ -29,6 +29,7 @@ pub struct CommandContext {
 pub struct CommandOutput {
     pub stdout: Vec<u8>,
     pub stderr: Vec<u8>,
+    pub success: bool,
 }
 
 impl CommandOutput {
@@ -36,6 +37,7 @@ impl CommandOutput {
         Self {
             stdout: Vec::new(),
             stderr: Vec::new(),
+            success: true,
         }
     }
 }
@@ -54,7 +56,10 @@ impl CommandContext {
                 command.args(self.args);
                 command.stdout(Stdio::piped());
                 command.stderr(Stdio::piped());
+
                 let command_output = command.spawn().unwrap().wait_with_output().unwrap();
+
+                output.success = command_output.status.success();
                 output.stdout = command_output.stdout;
                 output.stderr = command_output.stderr;
             }
