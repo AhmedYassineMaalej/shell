@@ -23,11 +23,8 @@ fn main() {
         let mut parser = Parser::new(tokens);
         parser.parse();
         let output = evaluate(parser.ast());
-        if output.success {
-            print!("{}", String::from_utf8(output.stdout).unwrap());
-        } else {
-            print!("{}", String::from_utf8(output.stderr).unwrap());
-        }
+        print!("{}", String::from_utf8(output.stdout).unwrap());
+        print!("{}", String::from_utf8(output.stderr).unwrap());
         buf.clear();
     }
 }
