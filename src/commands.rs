@@ -8,7 +8,7 @@ use std::{
 
 pub enum Command {
     Builtin(BuiltinCommand),
-    Binary(PathBuf),
+    Binary(String),
 }
 
 impl From<&str> for Command {
@@ -16,7 +16,7 @@ impl From<&str> for Command {
         if let Ok(builtin) = BuiltinCommand::try_from(value) {
             Self::Builtin(builtin)
         } else {
-            Self::Binary(PathBuf::from(value))
+            Self::Binary(String::from(value))
         }
     }
 }
@@ -52,6 +52,12 @@ impl CommandContext {
         match self.command {
             Command::Builtin(builtin) => builtin.execute(&mut output.stdout, self.args),
             Command::Binary(path) => {
+                let Some(path) = find_path(&path) else {
+                    writeln!(&mut output.stderr, "{}: command not found", path);
+                    output.success = false;
+                    return output;
+                };
+
                 let mut command = process::Command::new(path);
                 command.args(self.args);
                 command.stdout(Stdio::piped());
