@@ -153,6 +153,7 @@ impl TryFrom<&str> for BuiltinCommand {
             "pwd" => Ok(Self::Pwd),
             "cd" => Ok(Self::Cd),
             "type" => Ok(Self::Type),
+            "exit" => Ok(Self::Exit),
             s => Err(format!("unknown builtin: {s}")),
         }
     }
