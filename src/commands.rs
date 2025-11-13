@@ -160,7 +160,7 @@ impl BuiltinCommand {
         output
     }
 
-    fn exit<W: Write>(writer: &mut W, args: Vec<String>) {
+    fn exit(args: Vec<String>) -> ! {
         exit(0);
     }
 }
