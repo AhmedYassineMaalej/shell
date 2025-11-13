@@ -3,7 +3,7 @@ use std::{
     io::Write,
     os::unix::fs::PermissionsExt,
     path::PathBuf,
-    process::{self, Stdio},
+    process::{self, exit, Stdio},
 };
 
 pub enum Command {
@@ -74,6 +74,7 @@ pub enum BuiltinCommand {
     Cd,
     Pwd,
     Type,
+    Exit,
 }
 
 impl BuiltinCommand {
@@ -83,6 +84,7 @@ impl BuiltinCommand {
             BuiltinCommand::Cd => Self::cd(writer, args),
             BuiltinCommand::Pwd => Self::pwd(writer, args),
             BuiltinCommand::Type => Self::type_(writer, args),
+            BuiltinCommand::Exit => Self::exit(writer, args),
         }
     }
 
@@ -135,6 +137,10 @@ impl BuiltinCommand {
             Some(file) => writeln!(writer, "{cmd} is {}", file.display()),
             None => writeln!(writer, "{cmd}: not found"),
         };
+    }
+
+    fn exit<W: Write>(writer: &mut W, args: Vec<String>) {
+        exit(0);
     }
 }
 

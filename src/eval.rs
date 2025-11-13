@@ -31,4 +31,3 @@ fn redirect(src: Box<Expr>, stream: Stream, dest: String) -> CommandOutput {
         Stream::Stderr => todo!(),
     }
 }
-
