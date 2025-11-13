@@ -106,7 +106,7 @@ impl BuiltinCommand {
 
     fn cd(args: Vec<String>) -> CommandOutput {
         let mut output = CommandOutput::new();
-        let path = if args.len() >= 1 {
+        let path = if !args.is_empty() {
             args.into_iter().next().unwrap()
         } else {
             String::from("~")
@@ -133,7 +133,7 @@ impl BuiltinCommand {
     fn pwd(args: Vec<String>) -> CommandOutput {
         let mut output = CommandOutput::new();
 
-        if args.len() > 0 {
+        if !args.is_empty() {
             writeln!(output.stderr, "pwd: too many arguments");
             return output;
         }

@@ -28,6 +28,13 @@ fn redirect(src: Box<Expr>, stream: Stream, dest: String) -> CommandOutput {
                 success: src.success,
             }
         }
-        Stream::Stderr => todo!(),
+        Stream::Stderr => {
+            fs::write(dest, &src.stderr);
+            CommandOutput {
+                stdout: src.stdout,
+                stderr: Vec::new(),
+                success: src.success,
+            }
+        }
     }
 }
