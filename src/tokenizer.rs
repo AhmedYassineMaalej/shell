@@ -13,6 +13,10 @@ pub enum Token {
     Pipe,
     TwoGreater,
     ZeroGreater,
+    ZeroDoubleGreater,
+    OneDoubleGreater,
+    DoubleGreater,
+    TwoDoubleGreater,
 }
 
 impl Tokenizer {
@@ -38,16 +42,31 @@ impl Tokenizer {
         while let Some(char) = self.peek() {
             match char {
                 ' ' => self.whitespace(),
+                '>' if self.check_nth_ahead(1, '>') => {
+                    self.tokens.push(Token::DoubleGreater);
+                    self.consume_tokens(2);
+                }
                 '>' => {
                     self.next().unwrap();
                     self.tokens.push(Token::Greater);
                 }
-                '0' if self.chars.get(self.position + 1) == Some(&'>') => {
-                    self.next().unwrap();
-                    self.next().unwrap();
-                    self.tokens.push(Token::ZeroGreater);
+                '0' if self.check_nth_ahead(1, '>') && self.check_nth_ahead(2, '>') => {
+                    self.tokens.push(Token::ZeroDoubleGreater);
+                    self.consume_tokens(3);
                 }
-                '1' if self.chars.get(self.position + 1) == Some(&'>') => {
+                '1' if self.check_nth_ahead(1, '>') && self.check_nth_ahead(2, '>') => {
+                    self.tokens.push(Token::OneDoubleGreater);
+                    self.consume_tokens(3);
+                }
+                '2' if self.check_nth_ahead(1, '>') && self.check_nth_ahead(2, '>') => {
+                    self.tokens.push(Token::TwoDoubleGreater);
+                    self.consume_tokens(3);
+                }
+                '0' if self.check_nth_ahead(1, '>') => {
+                    self.tokens.push(Token::ZeroGreater);
+                    self.consume_tokens(2);
+                }
+                '1' if self.check_nth_ahead(1, '>') => {
                     self.next().unwrap();
                     self.next().unwrap();
                     self.tokens.push(Token::OneGreater);
@@ -68,6 +87,14 @@ impl Tokenizer {
                 _ => self.literal(),
             }
         }
+    }
+
+    fn consume_tokens(&mut self, amount: usize) {
+        self.position += amount;
+    }
+
+    fn check_nth_ahead(&self, n: usize, c: char) -> bool {
+        self.chars.get(self.position + n) == Some(&c)
     }
 
     fn literal(&mut self) {

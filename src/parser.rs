@@ -11,6 +11,11 @@ pub enum Expr {
         stream: Stream,
         dest: String,
     },
+    Append {
+        src: Box<Expr>,
+        stream: Stream,
+        dest: String,
+    },
 }
 
 #[derive(Debug)]
@@ -58,6 +63,12 @@ impl Parser {
                 Token::Literal(_) => todo!(),
                 Token::Pipe => todo!(),
                 Token::ZeroGreater => todo!(),
+                Token::TwoDoubleGreater | Token::OneDoubleGreater | Token::DoubleGreater => {
+                    todo!()
+                }
+                Token::OneDoubleGreater => todo!(),
+                Token::DoubleGreater => todo!(),
+                Token::ZeroDoubleGreater => todo!(),
             }
         }
     }
@@ -100,5 +111,22 @@ impl Parser {
 
     fn done(&self) -> bool {
         self.position == self.tokens.len()
+    }
+
+    fn append(&mut self) -> Expr {
+        let src = Box::new(self.ast.take().unwrap());
+
+        let stream = match self.next().unwrap() {
+            Token::DoubleGreater | Token::OneDoubleGreater => Stream::Stdout,
+            Token::ZeroDoubleGreater => Stream::Stdin,
+            Token::TwoDoubleGreater => Stream::Stderr,
+            t => panic!("expected append, found {t:?}"),
+        };
+
+        let Some(Token::Literal(dest)) = self.next() else {
+            panic!("expected destination after append");
+        };
+
+        Expr::Append { src, stream, dest }
     }
 }

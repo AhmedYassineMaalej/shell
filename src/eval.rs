@@ -1,4 +1,7 @@
-use std::fs;
+use std::{
+    fs::{self, OpenOptions},
+    io::Write,
+};
 
 use crate::{
     commands::{Command, CommandContext, CommandOutput},
@@ -12,6 +15,7 @@ pub fn evaluate(ast: Expr) -> CommandOutput {
             command.execute()
         }
         Expr::Redirect { src, stream, dest } => redirect(src, stream, dest),
+        Expr::Append { src, stream, dest } => redirect(src, stream, dest),
     }
 }
 
@@ -37,4 +41,38 @@ fn redirect(src: Box<Expr>, stream: Stream, dest: String) -> CommandOutput {
             }
         }
     }
+}
+
+fn append(src: Box<Expr>, stream: Stream, dest: String) -> CommandOutput {
+    let src = evaluate(*src);
+
+    match stream {
+        Stream::Stdin => todo!(),
+        Stream::Stdout => {
+            append_to_file(dest, &src.stdout);
+            CommandOutput {
+                stdout: Vec::new(),
+                stderr: src.stderr,
+                success: src.success,
+            }
+        }
+        Stream::Stderr => {
+            append_to_file(dest, &src.stderr);
+            CommandOutput {
+                stdout: src.stdout,
+                stderr: Vec::new(),
+                success: src.success,
+            }
+        }
+    }
+}
+
+fn append_to_file(file: String, content: &[u8]) {
+    let mut file = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(file)
+        .unwrap();
+
+    file.write_all(content);
 }
