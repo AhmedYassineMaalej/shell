@@ -64,7 +64,7 @@ impl Parser {
                 Token::Pipe => todo!(),
                 Token::ZeroGreater => todo!(),
                 Token::TwoDoubleGreater | Token::OneDoubleGreater | Token::DoubleGreater => {
-                    todo!()
+                    self.ast = Some(self.append());
                 }
                 Token::OneDoubleGreater => todo!(),
                 Token::DoubleGreater => todo!(),
