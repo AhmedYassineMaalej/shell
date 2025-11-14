@@ -15,7 +15,7 @@ pub fn evaluate(ast: Expr) -> CommandOutput {
             command.execute()
         }
         Expr::Redirect { src, stream, dest } => redirect(src, stream, dest),
-        Expr::Append { src, stream, dest } => redirect(src, stream, dest),
+        Expr::Append { src, stream, dest } => append(src, stream, dest),
     }
 }
 
