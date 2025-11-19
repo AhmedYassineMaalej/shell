@@ -88,6 +88,8 @@ pub enum BuiltinCommand {
 }
 
 impl BuiltinCommand {
+    const BUILTINS: [&'static str; 5] = ["echo", "cd", "pwd", "type", "exit"];
+
     pub fn execute(self, args: Vec<String>) -> CommandOutput {
         match self {
             BuiltinCommand::Echo => Self::echo(args),
@@ -178,6 +180,25 @@ impl TryFrom<&str> for BuiltinCommand {
             s => Err(format!("unknown builtin: {s}")),
         }
     }
+}
+
+pub fn get_commands() -> Vec<String> {
+    let mut commands: Vec<String> = Vec::new();
+
+    // add builtin commands
+    for builtin in BuiltinCommand::BUILTINS {
+        commands.push(builtin.to_string());
+    }
+
+    // add binaries
+    let path = env::var("PATH").unwrap();
+
+    for dir in split_paths(&path) {
+        let command = dir.to_str().unwrap().to_string();
+        commands.push(command);
+    }
+
+    commands
 }
 
 pub fn find_path(command_name: &str) -> Option<PathBuf> {
