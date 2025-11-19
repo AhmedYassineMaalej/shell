@@ -24,9 +24,10 @@ impl Completer for CmdHelper {
         let commands = get_commands();
         let mut completions = Vec::new();
 
-        for command in &commands {
+        for mut command in commands {
             if command.starts_with(line) {
-                completions.push(command.clone());
+                command.push(' ');
+                completions.push(command);
             }
         }
 
