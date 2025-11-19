@@ -1,5 +1,6 @@
 use std::{
     env::{self, split_paths},
+    fs,
     io::Write,
     os::unix::{fs::PermissionsExt, process::CommandExt},
     path::PathBuf,
@@ -194,8 +195,11 @@ pub fn get_commands() -> Vec<String> {
     let path = env::var("PATH").unwrap();
 
     for dir in split_paths(&path) {
-        let command = dir.to_str().unwrap().to_string();
-        commands.push(command);
+        let bins = fs::read_dir(dir).unwrap();
+        for binary in bins {
+            let command = binary.unwrap().file_name().into_string().unwrap();
+            commands.push(command);
+        }
     }
 
     commands
