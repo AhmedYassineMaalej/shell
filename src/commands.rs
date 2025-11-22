@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     env::{self, split_paths},
     fs,
     io::Write,
@@ -183,22 +184,23 @@ impl TryFrom<&str> for BuiltinCommand {
     }
 }
 
-pub fn get_commands() -> Vec<String> {
-    let mut commands: Vec<String> = Vec::new();
+pub fn get_commands() -> HashSet<String> {
+    let mut commands: HashSet<String> = HashSet::new();
 
     // add builtin commands
     for builtin in BuiltinCommand::BUILTINS {
-        commands.push(builtin.to_string());
+        commands.insert(builtin.to_string());
     }
 
     // add binaries
     let path = env::var("PATH").unwrap();
 
     for dir in split_paths(&path) {
-        let bins = fs::read_dir(dir).unwrap();
-        for binary in bins {
+        let dir = fs::read_dir(dir).unwrap();
+
+        for binary in dir {
             let command = binary.unwrap().file_name().into_string().unwrap();
-            commands.push(command);
+            commands.insert(command);
         }
     }
 

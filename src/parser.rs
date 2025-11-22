@@ -74,7 +74,7 @@ impl Parser {
     }
 
     fn command(&mut self) -> Expr {
-        let Token::Literal(name) = self.next().unwrap() else {
+        let Token::Literal(name) = self.next().expect("no command name found") else {
             panic!("expected command name")
         };
 
