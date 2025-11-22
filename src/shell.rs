@@ -19,6 +19,7 @@ enum CompletionState {
 pub struct Shell {
     buffer: String,
     stdout: RawTerminal<Stdout>,
+    raw_mode: bool,
     completion_state: CompletionState,
 }
 
@@ -26,13 +27,14 @@ impl Shell {
     pub fn new() -> Self {
         Self {
             buffer: String::new(),
-            stdout: stdout().into_raw_mode().unwrap(),
+            stdout: stdout().into_raw_mode().expect("failed to set raw mode"),
+            raw_mode: true,
             completion_state: CompletionState::None,
         }
     }
 
     pub fn run(&mut self) {
-        self.stdout.activate_raw_mode();
+        self.set_raw_mode(true);
 
         loop {
             self.display(format!("$ {}", self.buffer));
@@ -46,9 +48,31 @@ impl Shell {
         }
     }
 
-    pub fn display(&mut self, s: impl Display) {
-        write!(self.stdout, "{}", s).unwrap();
-        self.stdout.flush().unwrap();
+    fn display(&mut self, s: impl Display) {
+        self.set_raw_mode(true);
+        write!(self.stdout, "{s}").expect("failed to write to raw stdout");
+        self.stdout.flush().expect("failed to flush stdout");
+    }
+
+    fn bell(&mut self) {
+        self.display("\x07");
+    }
+
+    fn set_raw_mode(&mut self, raw_mode: bool) {
+        if self.raw_mode == raw_mode {
+            return;
+        }
+        self.raw_mode = raw_mode;
+
+        if raw_mode {
+            self.stdout
+                .activate_raw_mode()
+                .expect("failed to activated raw mode");
+        } else {
+            self.stdout
+                .suspend_raw_mode()
+                .expect("failed to suspend raw mode");
+        }
     }
 
     fn handle_key(&mut self, key: Key) -> ControlFlow<()> {
@@ -59,20 +83,20 @@ impl Shell {
                 ControlFlow::Break(())
             }
             Key::Char(c) => {
-                write!(self.stdout, "{}", c).unwrap();
-                self.stdout.flush().unwrap();
-
+                self.display(c);
                 self.buffer.push(c);
                 ControlFlow::Continue(())
             }
             Key::Backspace if !self.buffer.is_empty() => {
                 self.buffer.pop();
-                write!(self.stdout, "{}{}", cursor::Left(1), clear::AfterCursor);
-                self.stdout.flush().unwrap();
+                self.display(format!("{}{}", cursor::Left(1), clear::AfterCursor));
                 ControlFlow::Continue(())
             }
             Key::Ctrl('c') => std::process::exit(0),
-            _ => todo!(),
+            _ => {
+                self.set_raw_mode(false);
+                todo!();
+            }
         }
     }
 
@@ -85,75 +109,59 @@ impl Shell {
 
         completions.sort();
 
-        match completions.as_slice() {
-            [] => {
-                write!(self.stdout, "\x07").unwrap();
-                self.stdout.flush().unwrap();
-                ControlFlow::Continue(())
-            }
-            [completion] => {
-                self.single_completion(completion.clone());
-                ControlFlow::Continue(())
-            }
-            _ => self.multiple_completions(completions),
+        if completions.is_empty() {
+            self.bell();
+            return ControlFlow::Continue(());
         }
+
+        if completions.len() == 1 {
+            let completion = completions.into_iter().next().unwrap();
+            self.single_completion(completion);
+            return ControlFlow::Continue(());
+        }
+
+        self.multiple_completions(completions)
+    }
+
+    fn prefix_completion(&mut self, prefix: &str) {
+        self.display(format!(
+            "{}{}{}",
+            cursor::Left(self.buffer.len() as u16),
+            clear::AfterCursor,
+            prefix,
+        ));
+
+        self.buffer = String::from(prefix);
     }
 
     fn multiple_completions(&mut self, completions: Vec<String>) -> ControlFlow<()> {
-        match self.completion_state {
-            CompletionState::None => {
-                // check for common prefix
-                let prefix = completions
-                    .iter()
-                    .map(|s| s.as_str())
-                    .reduce(|a, b| common_prefix(a, b))
-                    .unwrap();
+        if self.completion_state == CompletionState::None {
+            let prefix = completions_prefix(&completions);
 
-                if !prefix.is_empty() && prefix != &self.buffer {
-                    write!(
-                        self.stdout,
-                        "{}{}{}",
-                        cursor::Left(self.buffer.len() as u16),
-                        clear::AfterCursor,
-                        prefix,
-                    );
-                    self.stdout.flush();
+            if !prefix.is_empty() && prefix != &self.buffer {
+                self.prefix_completion(prefix);
+            } else {
+                self.completion_state = CompletionState::Multiple;
+                self.bell();
+            }
 
-                    self.buffer = String::from(prefix);
-                    ControlFlow::Continue(())
-                } else {
-                    self.completion_state = CompletionState::Multiple;
-                    write!(self.stdout, "\x07").unwrap();
-                    self.stdout.flush().unwrap();
-                    ControlFlow::Continue(())
-                }
-            }
-            CompletionState::Multiple => {
-                write!(self.stdout, "\n").unwrap();
-                write!(
-                    self.stdout,
-                    "{}",
-                    cursor::Left(self.buffer.len() as u16 + 2),
-                )
-                .unwrap();
-                self.stdout.flush().unwrap();
-                self.stdout.suspend_raw_mode();
-                println!("{}", completions.join("  "));
-                self.stdout.activate_raw_mode();
-                ControlFlow::Break(())
-            }
+            return ControlFlow::Continue(());
         }
+
+        self.newline();
+
+        self.set_raw_mode(false);
+        println!("{}", completions.join("  "));
+
+        ControlFlow::Break(())
+    }
+
+    fn newline(&mut self) {
+        self.display(format!("\n{}", cursor::Left(self.buffer.len() as u16 + 2)));
     }
 
     fn handle_enter(&mut self) {
-        write!(self.stdout, "\n").unwrap();
-        write!(
-            self.stdout,
-            "{}",
-            cursor::Left(self.buffer.len() as u16 + 2)
-        );
-
-        self.stdout.flush().unwrap();
+        self.newline();
 
         let mut tokenizer = Tokenizer::new(&self.buffer);
         tokenizer.parse();
@@ -165,26 +173,31 @@ impl Shell {
 
         let output = evaluate(ast);
 
-        self.stdout.suspend_raw_mode();
+        self.set_raw_mode(false);
         print!("{}", String::from_utf8(output.stderr).unwrap());
         print!("{}", String::from_utf8(output.stdout).unwrap());
-        self.stdout.activate_raw_mode();
 
         self.buffer.clear();
     }
 
     fn single_completion(&mut self, completion: String) {
-        write!(
-            self.stdout,
+        self.display(format!(
             "{}{}{} ",
             cursor::Left(self.buffer.len() as u16),
             clear::AfterCursor,
             completion,
-        );
-        self.stdout.flush();
+        ));
 
         self.buffer = completion + " ";
     }
+}
+
+fn completions_prefix(completions: &Vec<String>) -> &str {
+    completions
+        .iter()
+        .map(|s| s.as_str())
+        .reduce(|a, b| common_prefix(a, b))
+        .unwrap()
 }
 
 fn common_prefix<'a>(word1: &'a str, word2: &'a str) -> &'a str {
