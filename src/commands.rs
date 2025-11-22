@@ -2,10 +2,10 @@ use std::{
     collections::HashSet,
     env::{self, split_paths},
     fs,
-    io::Write,
+    io::{Write, pipe},
     os::unix::{fs::PermissionsExt, process::CommandExt},
     path::PathBuf,
-    process::{self, exit, Stdio},
+    process::{self, Stdio, exit},
 };
 
 pub enum Command {
@@ -80,27 +80,44 @@ impl CommandContext {
         output
     }
 
-    pub fn execute_binary_piped(path: String, args: Vec<String>, input: &[u8]) -> CommandOutput {
+    pub fn execute_binary_piped(
+        src_path: String,
+        src_args: Vec<String>,
+        dest_path: String,
+        dest_args: Vec<String>,
+    ) -> CommandOutput {
         let mut output = CommandOutput::new();
+        let (pipe_reader, pipe_writer) = pipe().unwrap();
 
-        let Some(path) = find_path(&path) else {
-            writeln!(&mut output.stderr, "{}: command not found", path);
+        let Some(src_path) = find_path(&src_path) else {
+            writeln!(&mut output.stderr, "{}: command not found", src_path);
             output.success = false;
             return output;
         };
 
-        let mut command = process::Command::new(&path);
-        command.arg0(path.file_name().unwrap());
-        command.args(args);
-        command.stdout(Stdio::piped());
-        command.stderr(Stdio::piped());
-        command.stdin(Stdio::piped());
+        let mut src_command = process::Command::new(&src_path);
+        src_command.arg0(src_path.file_name().unwrap());
+        src_command.args(src_args);
+        src_command.stdout(pipe_reader);
+        src_command.stderr(Stdio::piped());
 
-        let process = command.spawn().unwrap();
+        let Some(dest_path) = find_path(&dest_path) else {
+            writeln!(&mut output.stderr, "{}: command not found", dest_path);
+            output.success = false;
+            return output;
+        };
 
-        process.stdin.as_ref().unwrap().write_all(input).unwrap();
+        let mut dest_command = process::Command::new(&dest_path);
+        dest_command.arg0(dest_path.file_name().unwrap());
+        dest_command.args(dest_args);
+        dest_command.stdin(pipe_writer);
+        dest_command.stdout(Stdio::piped());
+        dest_command.stderr(Stdio::piped());
 
-        let command_output = process.wait_with_output().unwrap();
+        let src_process = src_command.spawn().unwrap();
+        let dest_process = dest_command.spawn().unwrap();
+
+        let command_output = dest_process.wait_with_output().unwrap();
 
         output.success = command_output.status.success();
         output.stdout = command_output.stdout;

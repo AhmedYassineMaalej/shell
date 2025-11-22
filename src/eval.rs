@@ -79,11 +79,21 @@ fn append_to_file(file: String, content: &[u8]) {
 }
 
 fn pipe(src: Box<Expr>, dest: Box<Expr>) -> CommandOutput {
-    let src = evaluate(*src);
-
-    let Expr::Command { name, args } = *dest else {
+    let Expr::Command {
+        name: src_name,
+        args: src_args,
+    } = *src
+    else {
         panic!("expected command after pipe");
     };
 
-    CommandContext::execute_binary_piped(name, args, &src.stdout)
+    let Expr::Command {
+        name: dest_name,
+        args: dest_args,
+    } = *dest
+    else {
+        panic!("expected command after pipe");
+    };
+
+    CommandContext::execute_binary_piped(src_name, src_args, dest_name, dest_args)
 }
