@@ -81,7 +81,6 @@ impl Shell {
         let mut completions: Vec<String> = commands
             .into_iter()
             .filter(|s| s.starts_with(&self.buffer))
-            .map(|s| s + " ")
             .collect();
 
         completions.sort();
@@ -148,13 +147,13 @@ impl Shell {
     fn single_completion(&mut self, completion: String) {
         write!(
             self.stdout,
-            "{}{}{}",
+            "{}{}{} ",
             cursor::Left(self.buffer.len() as u16),
             clear::AfterCursor,
             completion,
         );
         self.stdout.flush();
 
-        self.buffer = completion;
+        self.buffer = completion + " ";
     }
 }
