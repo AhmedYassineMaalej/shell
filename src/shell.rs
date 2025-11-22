@@ -81,6 +81,7 @@ impl Shell {
         let mut completions: Vec<String> = commands
             .into_iter()
             .filter(|s| s.starts_with(&self.buffer))
+            .map(|s| s + " ")
             .collect();
 
         completions.sort();
