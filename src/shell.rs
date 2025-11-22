@@ -86,7 +86,11 @@ impl Shell {
         completions.sort();
 
         match completions.as_slice() {
-            [] => ControlFlow::Continue(()),
+            [] => {
+                write!(self.stdout, "\x07").unwrap();
+                self.stdout.flush().unwrap();
+                ControlFlow::Continue(())
+            }
             [completion] => {
                 self.single_completion(completion.clone());
                 ControlFlow::Continue(())
