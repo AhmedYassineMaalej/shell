@@ -61,6 +61,9 @@ fn main() {
                         stdout.activate_raw_mode();
                         buffer.clear();
                         break;
+                    } else if completions.len() > 1 {
+                        write!(stdout, "\x07").unwrap();
+                        stdout.flush().unwrap();
                     }
                 }
                 Key::Char('\n') => {
