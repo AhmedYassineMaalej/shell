@@ -12,8 +12,8 @@ use crate::{commands::get_commands, eval::evaluate, parser::Parser, tokenizer::T
 
 #[derive(Debug, PartialEq)]
 enum CompletionState {
-    NoCompletion,
-    MultipleCompletion,
+    None,
+    Multiple,
 }
 
 pub struct Shell {
@@ -27,7 +27,7 @@ impl Shell {
         Self {
             buffer: String::new(),
             stdout: stdout().into_raw_mode().unwrap(),
-            completion_state: CompletionState::NoCompletion,
+            completion_state: CompletionState::None,
         }
     }
 
@@ -80,7 +80,7 @@ impl Shell {
         let commands = get_commands();
         let mut completions: Vec<String> = commands
             .into_iter()
-            .filter(|s| s.starts_with(&self.buffer))
+            .filter(|s| s.starts_with(&self.buffer) && s != &self.buffer)
             .collect();
 
         completions.sort();
@@ -95,14 +95,21 @@ impl Shell {
                 self.single_completion(completion.clone());
                 ControlFlow::Continue(())
             }
-            _ => match self.completion_state {
-                CompletionState::NoCompletion => {
-                    self.completion_state = CompletionState::MultipleCompletion;
-                    write!(self.stdout, "\x07").unwrap();
-                    self.stdout.flush().unwrap();
-                    ControlFlow::Continue(())
-                }
-                CompletionState::MultipleCompletion => {
+            _ => self.multiple_completions(completions),
+        }
+    }
+
+    fn multiple_completions(&mut self, completions: Vec<String>) -> ControlFlow<()> {
+        match self.completion_state {
+            CompletionState::None => {
+                // check for common prefix
+                let prefix = completions
+                    .iter()
+                    .map(|s| s.as_str())
+                    .reduce(|a, b| common_prefix(a, b))
+                    .unwrap();
+
+                if !prefix.is_empty() && prefix != &self.buffer {
                     write!(self.stdout, "\n").unwrap();
                     write!(
                         self.stdout,
@@ -111,12 +118,29 @@ impl Shell {
                     )
                     .unwrap();
                     self.stdout.flush().unwrap();
-                    self.stdout.suspend_raw_mode();
-                    println!("{}", completions.join("  "));
-                    self.stdout.activate_raw_mode();
+                    self.buffer = prefix.to_string();
                     ControlFlow::Break(())
+                } else {
+                    self.completion_state = CompletionState::Multiple;
+                    write!(self.stdout, "\x07").unwrap();
+                    self.stdout.flush().unwrap();
+                    ControlFlow::Continue(())
                 }
-            },
+            }
+            CompletionState::Multiple => {
+                write!(self.stdout, "\n").unwrap();
+                write!(
+                    self.stdout,
+                    "{}",
+                    cursor::Left(self.buffer.len() as u16 + 2),
+                )
+                .unwrap();
+                self.stdout.flush().unwrap();
+                self.stdout.suspend_raw_mode();
+                println!("{}", completions.join("  "));
+                self.stdout.activate_raw_mode();
+                ControlFlow::Break(())
+            }
         }
     }
 
@@ -160,4 +184,14 @@ impl Shell {
 
         self.buffer = completion + " ";
     }
+}
+
+fn common_prefix<'a>(word1: &'a str, word2: &'a str) -> &'a str {
+    let mut i = word1
+        .chars()
+        .zip(word2.chars())
+        .take_while(|(c1, c2)| c1 == c2)
+        .count();
+
+    &word1[..i]
 }
