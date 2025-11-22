@@ -87,7 +87,6 @@ impl CommandContext {
         dest_args: Vec<String>,
     ) -> CommandOutput {
         let mut output = CommandOutput::new();
-        let (pipe_reader, pipe_writer) = pipe().unwrap();
 
         let Some(src_path) = find_path(&src_path) else {
             writeln!(&mut output.stderr, "{}: command not found", src_path);
@@ -98,8 +97,10 @@ impl CommandContext {
         let mut src_command = process::Command::new(&src_path);
         src_command.arg0(src_path.file_name().unwrap());
         src_command.args(src_args);
-        src_command.stdout(pipe_reader);
+        src_command.stdout(Stdio::piped());
         src_command.stderr(Stdio::piped());
+
+        let mut src_process = src_command.spawn().unwrap();
 
         let Some(dest_path) = find_path(&dest_path) else {
             writeln!(&mut output.stderr, "{}: command not found", dest_path);
@@ -110,11 +111,10 @@ impl CommandContext {
         let mut dest_command = process::Command::new(&dest_path);
         dest_command.arg0(dest_path.file_name().unwrap());
         dest_command.args(dest_args);
-        dest_command.stdin(pipe_writer);
+        dest_command.stdin(src_process.stdout.unwrap());
         dest_command.stdout(Stdio::piped());
         dest_command.stderr(Stdio::piped());
 
-        let src_process = src_command.spawn().unwrap();
         let dest_process = dest_command.spawn().unwrap();
 
         let command_output = dest_process.wait_with_output().unwrap();
