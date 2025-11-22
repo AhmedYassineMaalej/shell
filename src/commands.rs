@@ -79,6 +79,35 @@ impl CommandContext {
 
         output
     }
+
+    pub fn execute_binary_piped(path: String, args: Vec<String>, input: &[u8]) -> CommandOutput {
+        let mut output = CommandOutput::new();
+
+        let Some(path) = find_path(&path) else {
+            writeln!(&mut output.stderr, "{}: command not found", path);
+            output.success = false;
+            return output;
+        };
+
+        let mut command = process::Command::new(&path);
+        command.arg0(path.file_name().unwrap());
+        command.args(args);
+        command.stdout(Stdio::piped());
+        command.stderr(Stdio::piped());
+        command.stdin(Stdio::piped());
+
+        let process = command.spawn().unwrap();
+
+        process.stdin.as_ref().unwrap().write_all(input).unwrap();
+
+        let command_output = process.wait_with_output().unwrap();
+
+        output.success = command_output.status.success();
+        output.stdout = command_output.stdout;
+        output.stderr = command_output.stderr;
+
+        output
+    }
 }
 
 pub enum BuiltinCommand {

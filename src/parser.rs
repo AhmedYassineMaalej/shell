@@ -16,6 +16,10 @@ pub enum Expr {
         stream: Stream,
         dest: String,
     },
+    Pipe {
+        src: Box<Expr>,
+        dest: Box<Expr>,
+    },
 }
 
 #[derive(Debug)]
@@ -61,14 +65,14 @@ impl Parser {
                     self.ast = Some(self.redirect());
                 }
                 Token::Literal(_) => todo!(),
-                Token::Pipe => todo!(),
+                Token::Pipe => self.ast = Some(self.pipe()),
                 Token::ZeroGreater => todo!(),
                 Token::TwoDoubleGreater | Token::OneDoubleGreater | Token::DoubleGreater => {
                     self.ast = Some(self.append());
                 }
-                Token::OneDoubleGreater => todo!(),
-                Token::DoubleGreater => todo!(),
-                Token::ZeroDoubleGreater => todo!(),
+                Token::ZeroDoubleGreater => {
+                    todo!()
+                }
             }
         }
     }
@@ -103,6 +107,18 @@ impl Parser {
         };
 
         Expr::Redirect { src, stream, dest }
+    }
+
+    fn pipe(&mut self) -> Expr {
+        let src = Box::new(self.ast.take().unwrap());
+        self.next(); // consume pipe
+
+        let Expr::Command { name, args } = self.command() else {
+            panic!("expected command after pipe");
+        };
+
+        let dest = Box::new(Expr::Command { name, args });
+        Expr::Pipe { src, dest }
     }
 
     pub fn ast(self) -> Expr {

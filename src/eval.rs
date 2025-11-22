@@ -16,6 +16,7 @@ pub fn evaluate(ast: Expr) -> CommandOutput {
         }
         Expr::Redirect { src, stream, dest } => redirect(src, stream, dest),
         Expr::Append { src, stream, dest } => append(src, stream, dest),
+        Expr::Pipe { src, dest } => pipe(src, dest),
     }
 }
 
@@ -75,4 +76,14 @@ fn append_to_file(file: String, content: &[u8]) {
         .unwrap();
 
     file.write_all(content);
+}
+
+fn pipe(src: Box<Expr>, dest: Box<Expr>) -> CommandOutput {
+    let src = evaluate(*src);
+
+    let Expr::Command { name, args } = *dest else {
+        panic!("expected command after pipe");
+    };
+
+    CommandContext::execute_binary_piped(name, args, &src.stdout)
 }
