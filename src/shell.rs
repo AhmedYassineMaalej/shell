@@ -110,16 +110,17 @@ impl Shell {
                     .unwrap();
 
                 if !prefix.is_empty() && prefix != &self.buffer {
-                    write!(self.stdout, "\n").unwrap();
                     write!(
                         self.stdout,
-                        "{}",
-                        cursor::Left(self.buffer.len() as u16 + 2),
-                    )
-                    .unwrap();
-                    self.stdout.flush().unwrap();
-                    self.buffer = prefix.to_string();
-                    ControlFlow::Break(())
+                        "{}{}{}",
+                        cursor::Left(self.buffer.len() as u16),
+                        clear::AfterCursor,
+                        prefix,
+                    );
+                    self.stdout.flush();
+
+                    self.buffer = String::from(prefix);
+                    ControlFlow::Continue(())
                 } else {
                     self.completion_state = CompletionState::Multiple;
                     write!(self.stdout, "\x07").unwrap();
