@@ -105,7 +105,7 @@ impl CommandContext {
         src_command.stdout(pipe_writer);
         src_command.stderr(Stdio::piped());
 
-        let mut src_process = src_command.spawn().unwrap().wait();
+        let mut src_process = src_command.spawn().unwrap();
 
         let Some(dest_path) = find_path(&dest_path) else {
             writeln!(&mut output.stderr, "{}: command not found", dest_path);
