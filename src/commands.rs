@@ -99,13 +99,12 @@ impl CommandContext {
             return output;
         };
 
-        let mut src_command = process::Command::new(&src_path);
-        src_command.arg0(src_path.file_name().unwrap());
-        src_command.args(src_args);
-        src_command.stdout(pipe_writer);
-        src_command.stderr(Stdio::piped());
-
-        let mut src_process = src_command.spawn().unwrap();
+        let cmd1 = process::Command::new(&src_path)
+            .arg0(src_path.file_name().unwrap())
+            .args(src_args)
+            .stdout(pipe_writer)
+            .spawn()
+            .unwrap();
 
         let Some(dest_path) = find_path(&dest_path) else {
             writeln!(&mut output.stderr, "{}: command not found", dest_path);
@@ -113,16 +112,13 @@ impl CommandContext {
             return output;
         };
 
-        let mut dest_command = process::Command::new(&dest_path);
-        dest_command.arg0(dest_path.file_name().unwrap());
-        dest_command.args(dest_args);
-        dest_command.stdin(pipe_reader);
-        dest_command.stdout(Stdio::piped());
-        dest_command.stderr(Stdio::piped());
+        let mut cmd2 = process::Command::new(&dest_path);
+        cmd2.arg0(dest_path.file_name().unwrap());
+        cmd2.args(dest_args);
+        cmd2.stdin(pipe_reader);
+        cmd2.stdout(Stdio::piped());
 
-        let dest_process = dest_command.spawn().unwrap();
-
-        let command_output = dest_process.wait_with_output().unwrap();
+        let command_output = cmd2.spawn().unwrap().wait_with_output().unwrap();
 
         output.success = command_output.status.success();
         output.stdout = command_output.stdout;

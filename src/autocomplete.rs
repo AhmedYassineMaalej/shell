@@ -8,8 +8,26 @@ use std::{
 fn test_piping() {
     let (pipe_reader, pipe_writer) = pipe().unwrap();
 
-    let cmd1 = Command::new("tail")
-        .arg("-f")
+    // let cmd1 = Command::new("tail")
+    //     .arg("-f")
+    //     .arg("test.txt")
+    //     .stdout(pipe_writer)
+    //     .spawn()
+    //     .unwrap();
+    //
+    // let mut file = OpenOptions::new().append(true).open("test.txt").unwrap();
+    // file.write_all("fourth line\nfifth line\n".as_bytes());
+    //
+    // let cmd2 = Command::new("head")
+    //     .arg("-n 5")
+    //     .stdin(pipe_reader)
+    //     .stdout(Stdio::piped())
+    //     .spawn()
+    //     .unwrap()
+    //     .wait_with_output()
+    //     .unwrap();
+    //
+    let cmd1 = Command::new("cat")
         .arg("test.txt")
         .stdout(pipe_writer)
         .spawn()
@@ -18,8 +36,7 @@ fn test_piping() {
     let mut file = OpenOptions::new().append(true).open("test.txt").unwrap();
     file.write_all("fourth line\nfifth line\n".as_bytes());
 
-    let cmd2 = Command::new("head")
-        .arg("-n 5")
+    let cmd2 = Command::new("wc")
         .stdin(pipe_reader)
         .stdout(Stdio::piped())
         .spawn()
