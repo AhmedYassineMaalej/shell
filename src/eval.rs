@@ -77,7 +77,11 @@ fn pipe(src: Box<Expr>, dest: Box<Expr>) {
     let child1 = cmd1.execute(Stdio::inherit(), pipe_writer, io::stderr());
 
     let cmd2 = Command::new(dest_name, dest_args);
-    cmd2.execute(pipe_reader, io::stdout(), io::stderr());
+    let child2 = cmd2.execute(pipe_reader, io::stdout(), io::stderr());
+
+    if let Some(mut child) = child2 {
+        child.wait();
+    }
 
     if let Some(mut child) = child1 {
         child.wait();
