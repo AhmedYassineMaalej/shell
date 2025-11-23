@@ -99,7 +99,7 @@ impl CommandContext {
             return output;
         };
 
-        let cmd1 = process::Command::new(&src_path)
+        let mut cmd1 = process::Command::new(&src_path)
             .arg0(src_path.file_name().unwrap())
             .args(src_args)
             .stdout(pipe_writer)
@@ -119,6 +119,8 @@ impl CommandContext {
         cmd2.stdout(Stdio::piped());
 
         let command_output = cmd2.spawn().unwrap().wait_with_output().unwrap();
+
+        cmd1.wait().unwrap();
 
         output.success = command_output.status.success();
         output.stdout = command_output.stdout;
