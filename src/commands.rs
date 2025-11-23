@@ -127,7 +127,7 @@ impl Executable for Binary {
         command.stdout(stdout);
         command.stderr(stderr);
 
-        command.spawn().unwrap().wait().unwrap();
+        command.spawn().unwrap();
     }
 }
 
