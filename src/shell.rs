@@ -172,10 +172,7 @@ impl Shell {
         let ast = parser.ast();
 
         self.set_raw_mode(false);
-        let output = evaluate(ast);
-
-        print!("{}", String::from_utf8(output.stderr).unwrap());
-        print!("{}", String::from_utf8(output.stdout).unwrap());
+        evaluate(ast);
 
         self.buffer.clear();
     }

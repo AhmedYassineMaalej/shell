@@ -1,18 +1,15 @@
-use std::{
-    fs::{self, OpenOptions},
-    io::Write,
-};
+use std::{fs::OpenOptions, io, os::unix::process::CommandExt, process::Stdio};
 
 use crate::{
-    commands::{Command, CommandContext, CommandOutput},
+    commands::{Command, Executable, find_path},
     parser::{Expr, Stream},
 };
 
-pub fn evaluate(ast: Expr) -> CommandOutput {
+pub fn evaluate(ast: Expr) {
     match ast {
         Expr::Command { name, args } => {
-            let command = CommandContext::new(Command::from(name.as_str()), args);
-            command.execute()
+            let command = Command::new(name, args);
+            command.execute(Stdio::inherit(), io::stdout(), io::stderr());
         }
         Expr::Redirect { src, stream, dest } => redirect(src, stream, dest),
         Expr::Append { src, stream, dest } => append(src, stream, dest),
@@ -20,65 +17,39 @@ pub fn evaluate(ast: Expr) -> CommandOutput {
     }
 }
 
-fn redirect(src: Box<Expr>, stream: Stream, dest: String) -> CommandOutput {
-    let src = evaluate(*src);
+fn redirect(src: Box<Expr>, stream: Stream, dest: String) {
+    let Expr::Command { name, args } = *src else {
+        panic!("expected command before pipe");
+    };
+
+    let file = OpenOptions::new().truncate(true).open(dest).unwrap();
+
+    let command = Command::new(name, args);
 
     match stream {
         Stream::Stdin => todo!(),
-        Stream::Stdout => {
-            fs::write(dest, &src.stdout);
-            CommandOutput {
-                stdout: Vec::new(),
-                stderr: src.stderr,
-                success: src.success,
-            }
-        }
-        Stream::Stderr => {
-            fs::write(dest, &src.stderr);
-            CommandOutput {
-                stdout: src.stdout,
-                stderr: Vec::new(),
-                success: src.success,
-            }
-        }
+        Stream::Stdout => command.execute(Stdio::inherit(), file, io::stderr()),
+        Stream::Stderr => command.execute(Stdio::inherit(), io::stdout(), file),
     }
 }
 
-fn append(src: Box<Expr>, stream: Stream, dest: String) -> CommandOutput {
-    let src = evaluate(*src);
+fn append(src: Box<Expr>, stream: Stream, dest: String) {
+    let Expr::Command { name, args } = *src else {
+        panic!("expected command before pipe");
+    };
+
+    let file = OpenOptions::new().append(true).open(dest).unwrap();
+
+    let command = Command::new(name, args);
 
     match stream {
         Stream::Stdin => todo!(),
-        Stream::Stdout => {
-            append_to_file(dest, &src.stdout);
-            CommandOutput {
-                stdout: Vec::new(),
-                stderr: src.stderr,
-                success: src.success,
-            }
-        }
-        Stream::Stderr => {
-            append_to_file(dest, &src.stderr);
-            CommandOutput {
-                stdout: src.stdout,
-                stderr: Vec::new(),
-                success: src.success,
-            }
-        }
+        Stream::Stdout => command.execute(Stdio::inherit(), file, io::stderr()),
+        Stream::Stderr => command.execute(Stdio::inherit(), io::stdout(), file),
     }
 }
 
-fn append_to_file(file: String, content: &[u8]) {
-    let mut file = OpenOptions::new()
-        .append(true)
-        .create(true)
-        .open(file)
-        .unwrap();
-
-    file.write_all(content);
-}
-
-fn pipe(src: Box<Expr>, dest: Box<Expr>) -> CommandOutput {
+fn pipe(src: Box<Expr>, dest: Box<Expr>) {
     let Expr::Command {
         name: src_name,
         args: src_args,
@@ -95,5 +66,36 @@ fn pipe(src: Box<Expr>, dest: Box<Expr>) -> CommandOutput {
         panic!("expected command after pipe");
     };
 
-    CommandContext::execute_binary_piped(src_name, src_args, dest_name, dest_args)
+    let (pipe_reader, pipe_writer) = std::io::pipe().unwrap();
+
+    let Some(src_path) = find_path(&src_name) else {
+        eprintln!("{}: command not found", src_name);
+        return;
+    };
+
+    let mut cmd1 = std::process::Command::new(&src_path)
+        .arg0(src_path.file_name().unwrap())
+        .args(src_args)
+        .stdout(pipe_writer)
+        .spawn()
+        .unwrap();
+
+    let Some(dest_path) = find_path(&dest_name) else {
+        eprintln!("{}: command not found", dest_name);
+        return;
+    };
+
+    let mut cmd2 = std::process::Command::new(&dest_path)
+        .arg0(dest_path.file_name().unwrap())
+        .args(dest_args)
+        .stdin(pipe_reader)
+        .stdout(Stdio::inherit())
+        .spawn()
+        .unwrap()
+        .wait_with_output()
+        .unwrap();
+
+    let command_output = cmd2;
+
+    cmd1.wait().unwrap();
 }
