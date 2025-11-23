@@ -116,7 +116,7 @@ impl CommandContext {
             .arg0(dest_path.file_name().unwrap())
             .args(dest_args)
             .stdin(pipe_reader)
-            .stdout(Stdio::piped())
+            .stdout(Stdio::inherit())
             .spawn()
             .unwrap()
             .wait_with_output()

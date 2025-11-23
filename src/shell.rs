@@ -1,5 +1,5 @@
 use std::fmt::Display;
-use std::io::{self, stdout, Stdout, Write};
+use std::io::{self, Stdout, Write, stdout};
 use std::ops::ControlFlow;
 use termion::{
     clear, cursor,
@@ -171,9 +171,9 @@ impl Shell {
         parser.parse();
         let ast = parser.ast();
 
+        self.set_raw_mode(false);
         let output = evaluate(ast);
 
-        self.set_raw_mode(false);
         print!("{}", String::from_utf8(output.stderr).unwrap());
         print!("{}", String::from_utf8(output.stdout).unwrap());
 
