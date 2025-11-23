@@ -15,10 +15,6 @@ fn test_piping() {
         .spawn()
         .unwrap();
 
-    let mut file = OpenOptions::new().append(true).open("test.txt").unwrap();
-    file.write_all("fourth line\nfifth line\n".as_bytes());
-
-    cmd1.wait().unwrap();
     let cmd2 = Command::new("head")
         .arg("-n 5")
         .stdin(pipe_reader)

@@ -112,13 +112,17 @@ impl CommandContext {
             return output;
         };
 
-        let mut cmd2 = process::Command::new(&dest_path);
-        cmd2.arg0(dest_path.file_name().unwrap());
-        cmd2.args(dest_args);
-        cmd2.stdin(pipe_reader);
-        cmd2.stdout(Stdio::piped());
+        let mut cmd2 = process::Command::new(&dest_path)
+            .arg0(dest_path.file_name().unwrap())
+            .args(dest_args)
+            .stdin(pipe_reader)
+            .stdout(Stdio::piped())
+            .spawn()
+            .unwrap()
+            .wait_with_output()
+            .unwrap();
 
-        let command_output = cmd2.spawn().unwrap().wait_with_output().unwrap();
+        let command_output = cmd2;
 
         cmd1.wait().unwrap();
 
