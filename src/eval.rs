@@ -68,8 +68,12 @@ fn append(src: Box<Expr>, stream: Stream, dest: String) {
 
     match stream {
         Stream::Stdin => todo!(),
-        Stream::Stdout => command.execute(Stdio::inherit(), file, io::stderr()),
-        Stream::Stderr => command.execute(Stdio::inherit(), io::stdout(), file),
+        Stream::Stdout => command
+            .execute(Stdio::inherit(), file, io::stderr())
+            .map(|mut child| child.wait()),
+        Stream::Stderr => command
+            .execute(Stdio::inherit(), io::stdout(), file)
+            .map(|mut child| child.wait()),
     };
 }
 
