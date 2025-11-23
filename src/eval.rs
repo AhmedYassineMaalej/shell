@@ -1,4 +1,9 @@
-use std::{fs::OpenOptions, io, os::unix::process::CommandExt, process::Stdio};
+use std::{
+    fs::OpenOptions,
+    io::{self, stderr},
+    os::unix::process::CommandExt,
+    process::Stdio,
+};
 
 use crate::{
     commands::{Command, Executable, find_path},
@@ -68,34 +73,9 @@ fn pipe(src: Box<Expr>, dest: Box<Expr>) {
 
     let (pipe_reader, pipe_writer) = std::io::pipe().unwrap();
 
-    let Some(src_path) = find_path(&src_name) else {
-        eprintln!("{}: command not found", src_name);
-        return;
-    };
+    let cmd1 = Command::new(src_name, src_args);
+    cmd1.execute(Stdio::inherit(), pipe_writer, io::stderr());
 
-    let mut cmd1 = std::process::Command::new(&src_path)
-        .arg0(src_path.file_name().unwrap())
-        .args(src_args)
-        .stdout(pipe_writer)
-        .spawn()
-        .unwrap();
-
-    let Some(dest_path) = find_path(&dest_name) else {
-        eprintln!("{}: command not found", dest_name);
-        return;
-    };
-
-    let mut cmd2 = std::process::Command::new(&dest_path)
-        .arg0(dest_path.file_name().unwrap())
-        .args(dest_args)
-        .stdin(pipe_reader)
-        .stdout(Stdio::inherit())
-        .spawn()
-        .unwrap()
-        .wait_with_output()
-        .unwrap();
-
-    let command_output = cmd2;
-
-    cmd1.wait().unwrap();
+    let cmd2 = Command::new(dest_name, dest_args);
+    cmd2.execute(pipe_reader, io::stdout(), io::stderr());
 }
