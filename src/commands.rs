@@ -5,7 +5,7 @@ use std::{
     io::{Read, Write, pipe},
     os::unix::{fs::PermissionsExt, process::CommandExt},
     path::PathBuf,
-    process::{self, Stdio, exit},
+    process::{self, Child, Stdio, exit},
 };
 
 pub struct Cd {
@@ -13,7 +13,7 @@ pub struct Cd {
 }
 
 impl Executable for Cd {
-    fn execute<I, O, E>(&self, mut stdin: I, mut stdout: O, mut stderr: E)
+    fn execute<I, O, E>(&self, mut stdin: I, mut stdout: O, mut stderr: E) -> Option<Child>
     where
         I: Into<Stdio>,
         O: Into<Stdio> + Write,
@@ -27,7 +27,7 @@ impl Executable for Cd {
         if path == PathBuf::from("~") {
             let home_dir = env::home_dir().unwrap();
             env::set_current_dir(&home_dir).unwrap();
-            return;
+            return None;
         }
 
         let current_directory = env::current_dir().unwrap();
@@ -38,6 +38,8 @@ impl Executable for Cd {
                 writeln!(stdout, "cd: {}: No such file or directory", path.display());
             }
         }
+
+        None
     }
 }
 
@@ -46,7 +48,7 @@ pub struct Type {
 }
 
 impl Executable for Type {
-    fn execute<I, O, E>(&self, mut stdin: I, mut stdout: O, mut stderr: E)
+    fn execute<I, O, E>(&self, mut stdin: I, mut stdout: O, mut stderr: E) -> Option<Child>
     where
         I: Into<Stdio>,
         O: Into<Stdio> + Write,
@@ -54,13 +56,15 @@ impl Executable for Type {
     {
         if BUILTINS.contains(&self.command.as_str()) {
             writeln!(stdout, "{} is a shell builtin", self.command);
-            return;
+            return None;
         }
 
         match find_path(&self.command) {
             Some(file) => writeln!(stdout, "{} is {}", self.command, file.display()),
             None => writeln!(stderr, "{}: not found", self.command),
         };
+
+        None
     }
 }
 
@@ -69,20 +73,21 @@ pub struct Echo {
 }
 
 impl Executable for Echo {
-    fn execute<I, O, E>(&self, mut stdin: I, mut stdout: O, mut stderr: E)
+    fn execute<I, O, E>(&self, mut stdin: I, mut stdout: O, mut stderr: E) -> Option<Child>
     where
         I: Into<Stdio>,
         O: Into<Stdio> + Write,
         E: Into<Stdio> + Write,
     {
         writeln!(stdout, "{}", self.args.join(" "));
+        None
     }
 }
 
 pub struct Pwd;
 
 impl Executable for Pwd {
-    fn execute<I, O, E>(&self, mut stdin: I, mut stdout: O, mut stderr: E)
+    fn execute<I, O, E>(&self, mut stdin: I, mut stdout: O, mut stderr: E) -> Option<Child>
     where
         I: Into<Stdio>,
         O: Into<Stdio> + Write,
@@ -96,6 +101,7 @@ impl Executable for Pwd {
 
         let current_directory = env::current_dir().unwrap();
         writeln!(stdout, "{}", current_directory.display());
+        None
     }
 }
 
@@ -109,7 +115,7 @@ pub struct Binary {
 }
 
 impl Executable for Binary {
-    fn execute<I, O, E>(&self, mut stdin: I, mut stdout: O, mut stderr: E)
+    fn execute<I, O, E>(&self, mut stdin: I, mut stdout: O, mut stderr: E) -> Option<Child>
     where
         I: Into<Stdio>,
         O: Into<Stdio> + Write,
@@ -117,7 +123,7 @@ impl Executable for Binary {
     {
         let Some(path) = find_path(&self.path) else {
             writeln!(stderr, "{}: command not found", self.path);
-            return;
+            return None;
         };
 
         let mut command = process::Command::new(&path);
@@ -127,12 +133,12 @@ impl Executable for Binary {
         command.stdout(stdout);
         command.stderr(stderr);
 
-        command.spawn().unwrap();
+        Some(command.spawn().unwrap())
     }
 }
 
 impl Executable for Exit {
-    fn execute<I, O, E>(&self, mut stdin: I, mut stdout: O, mut stderr: E)
+    fn execute<I, O, E>(&self, mut stdin: I, mut stdout: O, mut stderr: E) -> Option<Child>
     where
         I: Into<Stdio>,
         O: Into<Stdio> + Write,
@@ -314,7 +320,7 @@ pub enum Command {
 }
 
 impl Executable for Command {
-    fn execute<I, O, E>(&self, mut stdin: I, mut stdout: O, mut stderr: E)
+    fn execute<I, O, E>(&self, mut stdin: I, mut stdout: O, mut stderr: E) -> Option<Child>
     where
         I: Into<Stdio>,
         O: Into<Stdio> + Write,
@@ -354,11 +360,9 @@ impl Command {
 }
 
 pub trait Executable {
-    fn execute<I, O, E>(&self, mut stdin: I, mut stdout: O, mut stderr: E)
+    fn execute<I, O, E>(&self, stdin: I, stdout: O, stderr: E) -> Option<Child>
     where
         I: Into<Stdio>,
         O: Into<Stdio> + Write,
-        E: Into<Stdio> + Write,
-    {
-    }
+        E: Into<Stdio> + Write;
 }

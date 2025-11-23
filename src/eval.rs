@@ -35,7 +35,7 @@ fn redirect(src: Box<Expr>, stream: Stream, dest: String) {
         Stream::Stdin => todo!(),
         Stream::Stdout => command.execute(Stdio::inherit(), file, io::stderr()),
         Stream::Stderr => command.execute(Stdio::inherit(), io::stdout(), file),
-    }
+    };
 }
 
 fn append(src: Box<Expr>, stream: Stream, dest: String) {
@@ -51,7 +51,7 @@ fn append(src: Box<Expr>, stream: Stream, dest: String) {
         Stream::Stdin => todo!(),
         Stream::Stdout => command.execute(Stdio::inherit(), file, io::stderr()),
         Stream::Stderr => command.execute(Stdio::inherit(), io::stdout(), file),
-    }
+    };
 }
 
 fn pipe(src: Box<Expr>, dest: Box<Expr>) {
@@ -74,8 +74,12 @@ fn pipe(src: Box<Expr>, dest: Box<Expr>) {
     let (pipe_reader, pipe_writer) = std::io::pipe().unwrap();
 
     let cmd1 = Command::new(src_name, src_args);
-    cmd1.execute(Stdio::inherit(), pipe_writer, io::stderr());
+    let child1 = cmd1.execute(Stdio::inherit(), pipe_writer, io::stderr());
 
     let cmd2 = Command::new(dest_name, dest_args);
     cmd2.execute(pipe_reader, io::stdout(), io::stderr());
+
+    if let Some(mut child) = child1 {
+        child.wait();
+    }
 }
