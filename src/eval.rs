@@ -27,7 +27,11 @@ fn redirect(src: Box<Expr>, stream: Stream, dest: String) {
         panic!("expected command before pipe");
     };
 
-    let file = OpenOptions::new().truncate(true).open(dest).unwrap();
+    let file = OpenOptions::new()
+        .truncate(true)
+        .create(true)
+        .open(dest)
+        .unwrap();
 
     let command = Command::new(name, args);
 
@@ -43,7 +47,11 @@ fn append(src: Box<Expr>, stream: Stream, dest: String) {
         panic!("expected command before pipe");
     };
 
-    let file = OpenOptions::new().append(true).open(dest).unwrap();
+    let file = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(dest)
+        .unwrap();
 
     let command = Command::new(name, args);
 
