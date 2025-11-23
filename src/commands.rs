@@ -3,7 +3,10 @@ use std::{
     env::{self, split_paths},
     fs,
     io::{Write, pipe},
-    os::unix::{fs::PermissionsExt, process::CommandExt},
+    os::{
+        fd::AsFd,
+        unix::{fs::PermissionsExt, process::CommandExt},
+    },
     path::PathBuf,
     process::{self, Stdio, exit},
 };
@@ -88,6 +91,8 @@ impl CommandContext {
     ) -> CommandOutput {
         let mut output = CommandOutput::new();
 
+        let (pipe_reader, pipe_writer) = pipe().unwrap();
+
         let Some(src_path) = find_path(&src_path) else {
             writeln!(&mut output.stderr, "{}: command not found", src_path);
             output.success = false;
@@ -97,10 +102,10 @@ impl CommandContext {
         let mut src_command = process::Command::new(&src_path);
         src_command.arg0(src_path.file_name().unwrap());
         src_command.args(src_args);
-        src_command.stdout(Stdio::piped());
+        src_command.stdout(pipe_writer);
         src_command.stderr(Stdio::piped());
 
-        let mut src_process = src_command.spawn().unwrap();
+        let mut src_process = src_command.spawn().unwrap().wait();
 
         let Some(dest_path) = find_path(&dest_path) else {
             writeln!(&mut output.stderr, "{}: command not found", dest_path);
@@ -111,7 +116,7 @@ impl CommandContext {
         let mut dest_command = process::Command::new(&dest_path);
         dest_command.arg0(dest_path.file_name().unwrap());
         dest_command.args(dest_args);
-        dest_command.stdin(src_process.stdout.unwrap());
+        dest_command.stdin(pipe_reader);
         dest_command.stdout(Stdio::piped());
         dest_command.stderr(Stdio::piped());
 
