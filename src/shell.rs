@@ -1,7 +1,7 @@
 use std::fmt::Display;
 use std::io::{self, Stdout, Write, stdout};
 use std::ops::ControlFlow;
-use std::process::Command;
+use std::process::Stdio;
 use termion::{
     clear, cursor,
     event::Key,
@@ -9,7 +9,8 @@ use termion::{
     raw::{IntoRawMode, RawTerminal},
 };
 
-use crate::{commands::get_commands, eval::evaluate, parser::Parser, tokenizer::Tokenizer};
+use crate::commands::Executable;
+use crate::{commands::get_commands, parser::Parser, tokenizer::Tokenizer};
 
 #[derive(Debug, PartialEq)]
 enum CompletionState {
@@ -164,9 +165,7 @@ impl Shell {
     fn handle_enter(&mut self) {
         self.newline();
 
-        let mut tokenizer = Tokenizer::new(&self.buffer);
-        tokenizer.parse();
-        let tokens = tokenizer.tokens();
+        let tokens = Tokenizer::tokenize(&self.buffer);
 
         let mut parser = Parser::new(tokens);
         parser.parse();
@@ -179,7 +178,11 @@ impl Shell {
         //     .spawn()
         //     .unwrap()
         //     .wait();
-        evaluate(ast);
+        // dbg!(&ast);
+        // evaluate(ast);
+
+        ast.execute(Stdio::inherit(), io::stdout(), io::stderr())
+            .map(|mut child| child.wait());
 
         self.buffer.clear();
     }

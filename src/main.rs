@@ -1,3 +1,5 @@
+#![warn(clippy::pedantic)]
+
 use crate::shell::Shell;
 
 mod autocomplete;

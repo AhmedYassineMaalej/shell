@@ -168,10 +168,6 @@ impl Tokenizer {
         }
     }
 
-    fn done(&self) -> bool {
-        self.position == self.chars.len()
-    }
-
     pub fn tokens(self) -> Vec<Token> {
         self.tokens
     }
