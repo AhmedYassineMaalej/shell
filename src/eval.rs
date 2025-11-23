@@ -14,7 +14,9 @@ pub fn evaluate(ast: Expr) {
     match ast {
         Expr::Command { name, args } => {
             let command = Command::new(name, args);
-            command.execute(Stdio::inherit(), io::stdout(), io::stderr());
+            if let Some(mut child) = command.execute(Stdio::inherit(), io::stdout(), io::stderr()) {
+                child.wait();
+            }
         }
         Expr::Redirect { src, stream, dest } => redirect(src, stream, dest),
         Expr::Append { src, stream, dest } => append(src, stream, dest),
@@ -28,6 +30,7 @@ fn redirect(src: Box<Expr>, stream: Stream, dest: String) {
     };
 
     let file = OpenOptions::new()
+        .write(true)
         .truncate(true)
         .create(true)
         .open(dest)
@@ -37,8 +40,16 @@ fn redirect(src: Box<Expr>, stream: Stream, dest: String) {
 
     match stream {
         Stream::Stdin => todo!(),
-        Stream::Stdout => command.execute(Stdio::inherit(), file, io::stderr()),
-        Stream::Stderr => command.execute(Stdio::inherit(), io::stdout(), file),
+        Stream::Stdout => {
+            if let Some(mut child) = command.execute(Stdio::inherit(), file, io::stderr()) {
+                child.wait();
+            }
+        }
+        Stream::Stderr => {
+            if let Some(mut child) = command.execute(Stdio::inherit(), io::stdout(), file) {
+                child.wait();
+            }
+        }
     };
 }
 

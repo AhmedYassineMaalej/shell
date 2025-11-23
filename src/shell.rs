@@ -1,6 +1,7 @@
 use std::fmt::Display;
 use std::io::{self, Stdout, Write, stdout};
 use std::ops::ControlFlow;
+use std::process::Command;
 use termion::{
     clear, cursor,
     event::Key,
@@ -172,6 +173,12 @@ impl Shell {
         let ast = parser.ast();
 
         self.set_raw_mode(false);
+        // Command::new("ls")
+        //     .arg("-1")
+        //     .arg("nonexistent")
+        //     .spawn()
+        //     .unwrap()
+        //     .wait();
         evaluate(ast);
 
         self.buffer.clear();
