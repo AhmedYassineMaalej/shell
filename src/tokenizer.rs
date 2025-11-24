@@ -118,7 +118,7 @@ impl Tokenizer {
             }
         }
 
-        self.tokens.push(Token::Literal(literal))
+        self.tokens.push(Token::Literal(literal));
     }
 
     fn single_quote_literal(&mut self) -> String {

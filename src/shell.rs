@@ -172,15 +172,6 @@ impl Shell {
         let ast = parser.ast();
 
         self.set_raw_mode(false);
-        // Command::new("ls")
-        //     .arg("-1")
-        //     .arg("nonexistent")
-        //     .spawn()
-        //     .unwrap()
-        //     .wait();
-        // dbg!(&ast);
-        // evaluate(ast);
-
         ast.execute(Stdio::inherit(), io::stdout(), io::stderr())
             .map(|mut child| child.wait());
 
