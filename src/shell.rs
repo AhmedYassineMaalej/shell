@@ -42,9 +42,8 @@ impl Shell {
             self.display(format!("$ {}", self.buffer));
 
             for key in io::stdin().keys().flatten() {
-                match self.handle_key(key) {
-                    ControlFlow::Continue(()) => continue,
-                    ControlFlow::Break(()) => break,
+                if let ControlFlow::Break(()) = self.handle_key(key) {
+                    break;
                 }
             }
         }
@@ -122,13 +121,13 @@ impl Shell {
             return ControlFlow::Continue(());
         }
 
-        self.multiple_completions(completions)
+        self.multiple_completions(&completions)
     }
 
     fn prefix_completion(&mut self, prefix: &str) {
         self.display(format!(
             "{}{}{}",
-            cursor::Left(self.buffer.len() as u16),
+            cursor::Left(self.buffer.len().try_into().unwrap()),
             clear::AfterCursor,
             prefix,
         ));
@@ -136,11 +135,11 @@ impl Shell {
         self.buffer = String::from(prefix);
     }
 
-    fn multiple_completions(&mut self, completions: Vec<String>) -> ControlFlow<()> {
+    fn multiple_completions(&mut self, completions: &[String]) -> ControlFlow<()> {
         if self.completion_state == CompletionState::None {
-            let prefix = completions_prefix(&completions);
+            let prefix = completions_prefix(completions);
 
-            if !prefix.is_empty() && prefix != &self.buffer {
+            if !prefix.is_empty() && prefix != self.buffer {
                 self.prefix_completion(prefix);
             } else {
                 self.completion_state = CompletionState::Multiple;
@@ -159,7 +158,10 @@ impl Shell {
     }
 
     fn newline(&mut self) {
-        self.display(format!("\n{}", cursor::Left(self.buffer.len() as u16 + 2)));
+        self.display(format!(
+            "\n{}",
+            cursor::Left(u16::try_from(self.buffer.len()).unwrap() + 2)
+        ));
     }
 
     fn handle_enter(&mut self) {
@@ -181,7 +183,7 @@ impl Shell {
     fn single_completion(&mut self, completion: String) {
         self.display(format!(
             "{}{}{} ",
-            cursor::Left(self.buffer.len() as u16),
+            cursor::Left(self.buffer.len().try_into().unwrap()),
             clear::AfterCursor,
             completion,
         ));
@@ -190,16 +192,16 @@ impl Shell {
     }
 }
 
-fn completions_prefix(completions: &Vec<String>) -> &str {
+fn completions_prefix(completions: &[String]) -> &str {
     completions
         .iter()
-        .map(|s| s.as_str())
+        .map(String::as_str)
         .reduce(|a, b| common_prefix(a, b))
         .unwrap()
 }
 
 fn common_prefix<'a>(word1: &'a str, word2: &'a str) -> &'a str {
-    let mut i = word1
+    let i = word1
         .chars()
         .zip(word2.chars())
         .take_while(|(c1, c2)| c1 == c2)

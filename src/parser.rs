@@ -51,8 +51,7 @@ impl Parser {
     }
 
     fn peek(&self) -> Option<Token> {
-        let t = self.tokens.get(self.position).cloned();
-        t
+        self.tokens.get(self.position).cloned()
     }
 
     pub fn parse(&mut self) {
@@ -123,10 +122,6 @@ impl Parser {
 
     pub fn ast(self) -> Expr {
         self.ast.unwrap()
-    }
-
-    fn done(&self) -> bool {
-        self.position == self.tokens.len()
     }
 
     fn append(&mut self) -> Expr {

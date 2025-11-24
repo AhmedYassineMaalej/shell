@@ -112,7 +112,7 @@ impl Tokenizer {
                         *self
                             .next()
                             .expect("expected escaped character after backslash"),
-                    )
+                    );
                 }
                 _ => literal.push(*self.next().unwrap()),
             }
