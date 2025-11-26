@@ -62,7 +62,9 @@ impl Command {
             "type" => Self::Type(Type {
                 command: args.into_iter().next().unwrap(),
             }),
-            "history" => Self::History(History),
+            "history" => Self::History(History {
+                amount: args.into_iter().next().map(|s| s.parse().unwrap()),
+            }),
             _ => Self::Binary(Binary { path: name, args }),
         }
     }
@@ -213,7 +215,9 @@ impl Executable for Exit {
     }
 }
 
-pub struct History;
+pub struct History {
+    amount: Option<usize>,
+}
 
 impl Executable for History {
     fn execute<I, O, E>(&self, shell: &Shell, stdin: I, mut stdout: O, stderr: E) -> Option<Child>
@@ -224,7 +228,12 @@ impl Executable for History {
     {
         let history = shell.history();
 
-        for (i, command) in history.into_iter().enumerate() {
+        let skipped = match self.amount {
+            Some(n) => history.len() - n,
+            None => 0,
+        };
+
+        for (i, command) in history.into_iter().enumerate().skip(skipped) {
             writeln!(stdout, "  {} {}", i + 1, command).unwrap();
         }
 

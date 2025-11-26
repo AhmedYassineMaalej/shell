@@ -12,6 +12,10 @@ impl History {
     pub fn add(&mut self, command: String) {
         self.commands.push(command);
     }
+
+    pub fn len(&self) -> usize {
+        self.commands.len()
+    }
 }
 
 impl<'a> IntoIterator for &'a History {
