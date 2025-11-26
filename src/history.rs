@@ -1,3 +1,5 @@
+use std::{fs, path::PathBuf};
+
 pub struct History {
     commands: Vec<String>,
     cursor: Option<usize>,
@@ -47,6 +49,13 @@ impl History {
 
     pub fn len(&self) -> usize {
         self.commands.len()
+    }
+
+    pub fn read_from_file(&mut self, file: PathBuf) {
+        let content = fs::read_to_string(file).unwrap();
+        for line in content.lines() {
+            self.add(line.to_string());
+        }
     }
 }
 

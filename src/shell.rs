@@ -242,8 +242,8 @@ impl Shell {
         self.buffer = completion + " ";
     }
 
-    pub fn history(&self) -> &History {
-        &self.history
+    pub fn history(&mut self) -> &mut History {
+        &mut self.history
     }
 }
 

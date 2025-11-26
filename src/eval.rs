@@ -13,7 +13,7 @@ use crate::{
 impl Executable for Expr {
     fn execute<I, O, E>(
         &self,
-        shell: &Shell,
+        shell: &mut Shell,
         stdin: I,
         stdout: O,
         stderr: E,

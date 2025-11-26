@@ -13,7 +13,7 @@ use crate::shell::Shell;
 const BUILTINS: [&str; 6] = ["echo", "cd", "pwd", "type", "exit", "history"];
 
 pub trait Executable {
-    fn execute<I, O, E>(&self, shell: &Shell, stdin: I, stdout: O, stderr: E) -> Option<Child>
+    fn execute<I, O, E>(&self, shell: &mut Shell, stdin: I, stdout: O, stderr: E) -> Option<Child>
     where
         I: Into<Stdio>,
         O: Into<Stdio> + Write,
@@ -31,7 +31,7 @@ pub enum Command {
 }
 
 impl Executable for Command {
-    fn execute<I, O, E>(&self, shell: &Shell, stdin: I, stdout: O, stderr: E) -> Option<Child>
+    fn execute<I, O, E>(&self, shell: &mut Shell, stdin: I, stdout: O, stderr: E) -> Option<Child>
     where
         I: Into<Stdio>,
         O: Into<Stdio> + Write,
@@ -63,7 +63,7 @@ impl Command {
                 command: args.into_iter().next().unwrap(),
             }),
             "history" => Self::History(History {
-                amount: args.into_iter().next().map(|s| s.parse().unwrap()),
+                argument: HistoryArg::new(args),
             }),
             _ => Self::Binary(Binary { path: name, args }),
         }
@@ -74,7 +74,13 @@ pub struct Cd {
 }
 
 impl Executable for Cd {
-    fn execute<I, O, E>(&self, shell: &Shell, stdin: I, mut stdout: O, stderr: E) -> Option<Child>
+    fn execute<I, O, E>(
+        &self,
+        shell: &mut Shell,
+        stdin: I,
+        mut stdout: O,
+        stderr: E,
+    ) -> Option<Child>
     where
         I: Into<Stdio>,
         O: Into<Stdio> + Write,
@@ -111,7 +117,7 @@ pub struct Type {
 impl Executable for Type {
     fn execute<I, O, E>(
         &self,
-        shell: &Shell,
+        shell: &mut Shell,
         _stdin: I,
         mut stdout: O,
         mut stderr: E,
@@ -140,7 +146,13 @@ pub struct Echo {
 }
 
 impl Executable for Echo {
-    fn execute<I, O, E>(&self, shell: &Shell, stdin: I, mut stdout: O, stderr: E) -> Option<Child>
+    fn execute<I, O, E>(
+        &self,
+        shell: &mut Shell,
+        stdin: I,
+        mut stdout: O,
+        stderr: E,
+    ) -> Option<Child>
     where
         I: Into<Stdio>,
         O: Into<Stdio> + Write,
@@ -154,7 +166,13 @@ impl Executable for Echo {
 pub struct Pwd;
 
 impl Executable for Pwd {
-    fn execute<I, O, E>(&self, shell: &Shell, stdin: I, mut stdout: O, stderr: E) -> Option<Child>
+    fn execute<I, O, E>(
+        &self,
+        shell: &mut Shell,
+        stdin: I,
+        mut stdout: O,
+        stderr: E,
+    ) -> Option<Child>
     where
         I: Into<Stdio>,
         O: Into<Stdio> + Write,
@@ -182,7 +200,13 @@ pub struct Binary {
 }
 
 impl Executable for Binary {
-    fn execute<I, O, E>(&self, shell: &Shell, stdin: I, stdout: O, mut stderr: E) -> Option<Child>
+    fn execute<I, O, E>(
+        &self,
+        shell: &mut Shell,
+        stdin: I,
+        stdout: O,
+        mut stderr: E,
+    ) -> Option<Child>
     where
         I: Into<Stdio>,
         O: Into<Stdio> + Write,
@@ -205,7 +229,13 @@ impl Executable for Binary {
 }
 
 impl Executable for Exit {
-    fn execute<I, O, E>(&self, shell: &Shell, _stdin: I, _stdout: O, _stderr: E) -> Option<Child>
+    fn execute<I, O, E>(
+        &self,
+        shell: &mut Shell,
+        _stdin: I,
+        _stdout: O,
+        _stderr: E,
+    ) -> Option<Child>
     where
         I: Into<Stdio>,
         O: Into<Stdio> + Write,
@@ -216,28 +246,71 @@ impl Executable for Exit {
 }
 
 pub struct History {
-    amount: Option<usize>,
+    argument: HistoryArg,
+}
+
+pub enum HistoryArg {
+    None,
+    Amount(usize),
+    Read(PathBuf),
+    Write(PathBuf),
+}
+
+impl HistoryArg {
+    pub fn new(args: Vec<String>) -> Self {
+        if args.is_empty() {
+            return Self::None;
+        }
+
+        match args.first().unwrap().as_str() {
+            "-r" => Self::Read(PathBuf::from(args[1].clone())),
+            "-w" => Self::Read(PathBuf::from(args[1].clone())),
+            n => Self::Amount(n.parse().unwrap()),
+        }
+    }
 }
 
 impl Executable for History {
-    fn execute<I, O, E>(&self, shell: &Shell, stdin: I, mut stdout: O, stderr: E) -> Option<Child>
+    fn execute<I, O, E>(
+        &self,
+        shell: &mut Shell,
+        stdin: I,
+        mut stdout: O,
+        stderr: E,
+    ) -> Option<Child>
     where
         I: Into<Stdio>,
         O: Into<Stdio> + Write,
         E: Into<Stdio> + Write,
     {
-        let history = shell.history();
+        match &self.argument {
+            HistoryArg::None => {
+                let history = shell.history();
 
-        let skipped = match self.amount {
-            Some(n) => history.len() - n,
-            None => 0,
-        };
+                for (i, command) in history.into_iter().enumerate() {
+                    writeln!(stdout, "  {} {}", i + 1, command).unwrap();
+                }
 
-        for (i, command) in history.into_iter().enumerate().skip(skipped) {
-            writeln!(stdout, "  {} {}", i + 1, command).unwrap();
+                None
+            }
+            HistoryArg::Amount(n) => {
+                let history = shell.history();
+
+                let skipped = history.len() - n;
+
+                for (i, command) in history.into_iter().enumerate().skip(skipped) {
+                    writeln!(stdout, "  {} {}", i + 1, command).unwrap();
+                }
+
+                None
+            }
+            HistoryArg::Read(path_buf) => {
+                let mut history = shell.history();
+                history.read_from_file(path_buf.clone());
+                None
+            }
+            HistoryArg::Write(path_buf) => todo!(),
         }
-
-        None
     }
 }
 
