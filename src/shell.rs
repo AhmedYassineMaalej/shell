@@ -97,11 +97,34 @@ impl Shell {
                 ControlFlow::Continue(())
             }
             Key::Ctrl('c') => std::process::exit(0),
-            _ => {
+            Key::Up => {
+                self.handle_up_arrow();
+                ControlFlow::Continue(())
+            }
+            k => {
                 self.set_raw_mode(false);
-                todo!();
+                todo!("{:?}", k);
             }
         }
+    }
+
+    fn handle_up_arrow(&mut self) {
+        let Some(command) = self.history.prev().cloned() else {
+            return;
+        };
+
+        if self.buffer.is_empty() {
+            self.display(&command);
+        } else {
+            self.display(format!(
+                "{}{}{}",
+                cursor::Left(self.buffer.len().try_into().unwrap()),
+                clear::AfterCursor,
+                command,
+            ));
+        }
+
+        self.buffer = command;
     }
 
     fn handle_autocompletion(&mut self) -> ControlFlow<()> {
