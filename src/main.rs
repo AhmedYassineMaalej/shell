@@ -2,7 +2,6 @@
 
 use crate::shell::Shell;
 
-mod autocomplete;
 mod commands;
 mod eval;
 mod parser;

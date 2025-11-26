@@ -148,7 +148,21 @@ impl Executable for Exit {
     }
 }
 
-const BUILTINS: [&str; 5] = ["echo", "cd", "pwd", "type", "exit"];
+pub struct History;
+
+impl Executable for History {
+    fn execute<I, O, E>(&self, stdin: I, stdout: O, stderr: E) -> Option<Child>
+    where
+        I: Into<Stdio>,
+        O: Into<Stdio> + Write,
+        E: Into<Stdio> + Write,
+    {
+        // TODO
+        None
+    }
+}
+
+const BUILTINS: [&str; 6] = ["echo", "cd", "pwd", "type", "exit", "history"];
 
 pub fn get_commands() -> HashSet<String> {
     let mut commands: HashSet<String> = HashSet::new();
@@ -198,6 +212,7 @@ pub enum Command {
     Type(Type),
     Echo(Echo),
     Exit(Exit),
+    History(History),
     Binary(Binary),
 }
 
@@ -215,6 +230,7 @@ impl Executable for Command {
             Command::Echo(echo) => echo.execute(stdin, stdout, stderr),
             Command::Exit(exit) => exit.execute(stdin, stdout, stderr),
             Command::Binary(binary) => binary.execute(stdin, stdout, stderr),
+            Command::History(history) => history.execute(stdin, stdout, stderr),
         }
     }
 }
