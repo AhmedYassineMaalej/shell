@@ -264,7 +264,7 @@ impl HistoryArg {
 
         match args.first().unwrap().as_str() {
             "-r" => Self::Read(PathBuf::from(args[1].clone())),
-            "-w" => Self::Read(PathBuf::from(args[1].clone())),
+            "-w" => Self::Write(PathBuf::from(args[1].clone())),
             n => Self::Amount(n.parse().unwrap()),
         }
     }
@@ -309,7 +309,10 @@ impl Executable for History {
                 history.read_from_file(path_buf.clone());
                 None
             }
-            HistoryArg::Write(path_buf) => todo!(),
+            HistoryArg::Write(path_buf) => {
+                shell.history().write_to_file(path_buf.clone());
+                None
+            }
         }
     }
 }

@@ -57,6 +57,10 @@ impl History {
             self.add(line.to_string());
         }
     }
+
+    pub fn write_to_file(&self, file: PathBuf) {
+        fs::write(file, self.commands.join("\n") + "\n");
+    }
 }
 
 impl<'a> IntoIterator for &'a History {
