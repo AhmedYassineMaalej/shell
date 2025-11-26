@@ -24,6 +24,22 @@ impl History {
         self.commands.get(self.cursor.unwrap())
     }
 
+    pub fn next(&mut self) -> Option<&String> {
+        if self.commands.is_empty() {
+            return None;
+        }
+
+        match self.cursor {
+            None => return None,
+            Some(i) => {
+                if i < self.commands.len() - 1 {
+                    self.cursor = Some(i + 1);
+                }
+                return self.commands.get(self.cursor.unwrap());
+            }
+        }
+    }
+
     pub fn add(&mut self, command: String) {
         self.commands.push(command);
         self.cursor = None;
@@ -43,4 +59,3 @@ impl<'a> IntoIterator for &'a History {
         self.commands.iter()
     }
 }
-
