@@ -4,6 +4,7 @@ use crate::shell::Shell;
 
 mod commands;
 mod eval;
+mod history;
 mod parser;
 mod shell;
 mod tokenizer;

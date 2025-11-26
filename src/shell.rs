@@ -10,6 +10,7 @@ use termion::{
 };
 
 use crate::commands::Executable;
+use crate::history::History;
 use crate::{commands::get_commands, parser::Parser, tokenizer::Tokenizer};
 
 #[derive(Debug, PartialEq)]
@@ -23,6 +24,7 @@ pub struct Shell {
     stdout: RawTerminal<Stdout>,
     raw_mode: bool,
     completion_state: CompletionState,
+    history: History,
 }
 
 impl Shell {
@@ -32,6 +34,7 @@ impl Shell {
             stdout: stdout().into_raw_mode().expect("failed to set raw mode"),
             raw_mode: true,
             completion_state: CompletionState::None,
+            history: History::new(),
         }
     }
 
@@ -165,6 +168,8 @@ impl Shell {
     }
 
     fn handle_enter(&mut self) {
+        self.history.add(self.buffer.clone());
+
         self.newline();
 
         let tokens = Tokenizer::tokenize(&self.buffer);
@@ -174,7 +179,7 @@ impl Shell {
         let ast = parser.ast();
 
         self.set_raw_mode(false);
-        ast.execute(Stdio::inherit(), io::stdout(), io::stderr())
+        ast.execute(self, Stdio::inherit(), io::stdout(), io::stderr())
             .map(|mut child| child.wait());
 
         self.buffer.clear();
@@ -189,6 +194,10 @@ impl Shell {
         ));
 
         self.buffer = completion + " ";
+    }
+
+    pub fn history(&self) -> &History {
+        &self.history
     }
 }
 
