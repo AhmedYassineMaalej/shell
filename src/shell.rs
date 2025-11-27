@@ -1,6 +1,7 @@
 use std::fmt::Display;
 use std::io::{self, Stdout, Write, stdout};
 use std::ops::ControlFlow;
+use std::path::PathBuf;
 use std::process::Stdio;
 use termion::{
     clear, cursor,
@@ -39,6 +40,7 @@ impl Shell {
     }
 
     pub fn run(&mut self) {
+        self.read_history_file();
         self.set_raw_mode(true);
 
         loop {
@@ -244,6 +246,14 @@ impl Shell {
 
     pub fn history(&mut self) -> &mut History {
         &mut self.history
+    }
+
+    fn read_history_file(&mut self) {
+        let Ok(path) = std::env::var("HISTFILE") else {
+            return;
+        };
+
+        self.history.read_from_file(PathBuf::from(path));
     }
 }
 
