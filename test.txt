@@ -1,3 +1,5 @@
 echo 1
 echo 2
 history -w test.txt
+cat test.txt
+history -a test.txt

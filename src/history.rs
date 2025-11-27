@@ -78,10 +78,12 @@ impl History {
         write!(
             file,
             "{}",
-            self.commands
+            self.commands[self.append_start..]
                 .iter()
                 .fold(String::new(), |acc, x| acc + x + "\n")
         );
+
+        self.append_start = self.commands.len();
     }
 }
 
