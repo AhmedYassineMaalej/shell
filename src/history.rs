@@ -1,8 +1,13 @@
-use std::{fs, path::PathBuf};
+use std::{
+    fs::{self, File, OpenOptions},
+    io::Write,
+    path::PathBuf,
+};
 
 pub struct History {
     commands: Vec<String>,
     cursor: Option<usize>,
+    append_start: usize,
 }
 
 impl History {
@@ -10,6 +15,7 @@ impl History {
         Self {
             commands: Vec::new(),
             cursor: None,
+            append_start: 0,
         }
     }
 
@@ -60,6 +66,22 @@ impl History {
 
     pub fn write_to_file(&self, file: PathBuf) {
         fs::write(file, self.commands.join("\n") + "\n");
+    }
+
+    pub fn append_to_file(&mut self, file: PathBuf) {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .open(file)
+            .unwrap();
+
+        write!(
+            file,
+            "{}",
+            self.commands
+                .iter()
+                .fold(String::new(), |acc, x| acc + x + "\n")
+        );
     }
 }
 

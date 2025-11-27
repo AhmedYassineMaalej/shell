@@ -5,7 +5,7 @@ use std::{
     io::Write,
     os::unix::{fs::PermissionsExt, process::CommandExt},
     path::{Path, PathBuf},
-    process::{self, Child, Stdio, exit},
+    process::{self, exit, Child, Stdio},
 };
 
 use crate::shell::Shell;
@@ -254,6 +254,7 @@ pub enum HistoryArg {
     Amount(usize),
     Read(PathBuf),
     Write(PathBuf),
+    Append(PathBuf),
 }
 
 impl HistoryArg {
@@ -265,6 +266,7 @@ impl HistoryArg {
         match args.first().unwrap().as_str() {
             "-r" => Self::Read(PathBuf::from(args[1].clone())),
             "-w" => Self::Write(PathBuf::from(args[1].clone())),
+            "-a" => Self::Append(PathBuf::from(args[1].clone())),
             n => Self::Amount(n.parse().unwrap()),
         }
     }
@@ -311,6 +313,10 @@ impl Executable for History {
             }
             HistoryArg::Write(path_buf) => {
                 shell.history().write_to_file(path_buf.clone());
+                None
+            }
+            HistoryArg::Append(path_buf) => {
+                shell.history().append_to_file(path_buf.clone());
                 None
             }
         }
