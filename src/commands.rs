@@ -63,7 +63,7 @@ impl Command {
                 command: args.into_iter().next().unwrap(),
             }),
             "history" => Self::History(History {
-                argument: HistoryArg::new(args),
+                argument: HistoryArg::new(&args),
             }),
             _ => Self::Binary(Binary { path: name, args }),
         }
@@ -76,10 +76,10 @@ pub struct Cd {
 impl Executable for Cd {
     fn execute<I, O, E>(
         &self,
-        shell: &mut Shell,
-        stdin: I,
+        _shell: &mut Shell,
+        _stdin: I,
         mut stdout: O,
-        stderr: E,
+        _stderr: E,
     ) -> Option<Child>
     where
         I: Into<Stdio>,
@@ -117,7 +117,7 @@ pub struct Type {
 impl Executable for Type {
     fn execute<I, O, E>(
         &self,
-        shell: &mut Shell,
+        _shell: &mut Shell,
         _stdin: I,
         mut stdout: O,
         mut stderr: E,
@@ -148,10 +148,10 @@ pub struct Echo {
 impl Executable for Echo {
     fn execute<I, O, E>(
         &self,
-        shell: &mut Shell,
-        stdin: I,
+        _shell: &mut Shell,
+        _stdin: I,
         mut stdout: O,
-        stderr: E,
+        _stderr: E,
     ) -> Option<Child>
     where
         I: Into<Stdio>,
@@ -168,10 +168,10 @@ pub struct Pwd;
 impl Executable for Pwd {
     fn execute<I, O, E>(
         &self,
-        shell: &mut Shell,
-        stdin: I,
+        _shell: &mut Shell,
+        _stdin: I,
         mut stdout: O,
-        stderr: E,
+        _stderr: E,
     ) -> Option<Child>
     where
         I: Into<Stdio>,
@@ -202,7 +202,7 @@ pub struct Binary {
 impl Executable for Binary {
     fn execute<I, O, E>(
         &self,
-        shell: &mut Shell,
+        _shell: &mut Shell,
         stdin: I,
         stdout: O,
         mut stderr: E,
@@ -260,7 +260,7 @@ pub enum HistoryArg {
 }
 
 impl HistoryArg {
-    pub fn new(args: Vec<String>) -> Self {
+    pub fn new(args: &[String]) -> Self {
         if args.is_empty() {
             return Self::None;
         }
@@ -278,9 +278,9 @@ impl Executable for History {
     fn execute<I, O, E>(
         &self,
         shell: &mut Shell,
-        stdin: I,
+        _stdin: I,
         mut stdout: O,
-        stderr: E,
+        _stderr: E,
     ) -> Option<Child>
     where
         I: Into<Stdio>,
@@ -309,7 +309,7 @@ impl Executable for History {
                 None
             }
             HistoryArg::Read(path_buf) => {
-                let mut history = shell.history();
+                let history = shell.history();
                 history.read_from_file(path_buf.clone());
                 None
             }

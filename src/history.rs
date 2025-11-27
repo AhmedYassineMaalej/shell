@@ -1,9 +1,10 @@
 use std::{
-    fs::{self, File, OpenOptions},
+    fs::{self, OpenOptions},
     io::Write,
     path::PathBuf,
 };
 
+#[derive(Default)]
 pub struct History {
     commands: Vec<String>,
     cursor: Option<usize>,
@@ -38,12 +39,12 @@ impl History {
         }
 
         match self.cursor {
-            None => return None,
+            None => None,
             Some(i) => {
                 if i < self.commands.len() - 1 {
                     self.cursor = Some(i + 1);
                 }
-                return self.commands.get(self.cursor.unwrap());
+                self.commands.get(self.cursor.unwrap())
             }
         }
     }
@@ -65,15 +66,11 @@ impl History {
     }
 
     pub fn write_to_file(&self, file: PathBuf) {
-        fs::write(file, self.commands.join("\n") + "\n");
+        fs::write(file, self.commands.join("\n") + "\n").unwrap();
     }
 
     pub fn append_to_file(&mut self, file: PathBuf) {
-        let mut file = OpenOptions::new()
-            .write(true)
-            .append(true)
-            .open(file)
-            .unwrap();
+        let mut file = OpenOptions::new().append(true).open(file).unwrap();
 
         write!(
             file,
@@ -81,7 +78,8 @@ impl History {
             self.commands[self.append_start..]
                 .iter()
                 .fold(String::new(), |acc, x| acc + x + "\n")
-        );
+        )
+        .unwrap();
 
         self.append_start = self.commands.len();
     }
