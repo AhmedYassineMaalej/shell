@@ -255,6 +255,14 @@ impl Shell {
 
         self.history.read_from_file(PathBuf::from(path));
     }
+
+    pub fn write_history_file(&mut self) {
+        let Ok(path) = std::env::var("HISTFILE") else {
+            return;
+        };
+
+        self.history.write_to_file(PathBuf::from(path));
+    }
 }
 
 fn completions_prefix(completions: &[String]) -> &str {

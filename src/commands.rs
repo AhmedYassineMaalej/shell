@@ -5,7 +5,7 @@ use std::{
     io::Write,
     os::unix::{fs::PermissionsExt, process::CommandExt},
     path::{Path, PathBuf},
-    process::{self, exit, Child, Stdio},
+    process::{self, Child, Stdio, exit},
 };
 
 use crate::shell::Shell;
@@ -241,6 +241,8 @@ impl Executable for Exit {
         O: Into<Stdio> + Write,
         E: Into<Stdio> + Write,
     {
+        shell.write_history_file();
+
         exit(self.code.unwrap_or_default());
     }
 }
